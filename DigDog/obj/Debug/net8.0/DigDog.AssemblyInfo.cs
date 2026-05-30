@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DigDog")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8db5bf316bfe571a11d62588446646fafff1c8c2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+32010e73694984dc396283da4e271ffb51ded0da")]
 [assembly: System.Reflection.AssemblyProductAttribute("DigDog")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DigDog")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
