@@ -63,19 +63,10 @@
     bool TemPermissao(Permissao p) => ehAdmin || permissoesUsuario.Contains(p);
 }
 <!DOCTYPE html>
-<html lang="pt-BR" data-coreui-theme="auto">
+<html lang="pt-BR">
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"/>
-    <title>@ViewData["Title"] - @nomeEstabelecimento</title>
-
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
-    <link rel="stylesheet" href="~/DigDog.styles.css" asp-append-version="true"/>
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplebar@latest/dist/simplebar.css"/>
-
-    <link href="https://cdn.jsdelivr.net/npm/@@coreui/coreui@5.6.1/dist/css/coreui.min.css" rel="stylesheet" integrity="sha384-q/at3GHMpO8VjBXzZ+ymx89MhqKtK9AcxYuECgmRq1b2a3797G4sfEM/ylqgywpd" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@coreui/icons@3.0.1/css/all.min.css">
 
     <script>
         (function () {
@@ -88,6 +79,16 @@
             }
         })();
     </script>
+    
+    <title>@ViewData["Title"] - @nomeEstabelecimento</title>
+
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    <link rel="stylesheet" href="~/DigDog.styles.css" asp-append-version="true"/>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplebar@latest/dist/simplebar.css"/>
+
+    <link href="https://cdn.jsdelivr.net/npm/@@coreui/coreui@5.6.1/dist/css/coreui.min.css" rel="stylesheet" integrity="sha384-q/at3GHMpO8VjBXzZ+ymx89MhqKtK9AcxYuECgmRq1b2a3797G4sfEM/ylqgywpd" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@coreui/icons@3.0.1/css/all.min.css">
 </head>
 
 <!-- Toast Container -->
