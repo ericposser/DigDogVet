@@ -1,0 +1,37 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.swp
+
+## Publish
+publish/
+out/
+
+## Logs
+*.log
+logs/
+
+## macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+## Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+## JetBrains (Rider)
+.idea/
+*.sln.iml
+
+## Visual Studio Code
+.vscode/
