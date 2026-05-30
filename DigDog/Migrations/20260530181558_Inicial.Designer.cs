@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DigDog.Migrations
 {
     [DbContext(typeof(Contexto))]
-    [Migration("20260529205745_AdicionarIndices")]
-    partial class AdicionarIndices
+    [Migration("20260530181558_Inicial")]
+    partial class Inicial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
