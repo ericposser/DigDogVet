@@ -255,6 +255,12 @@ public class Program
         app.MapRazorPages()
             .RequireRateLimiting("login");
 
+        // ── Porta para produção (Square Cloud) ────────────────────────────
+        if (!app.Environment.IsDevelopment())
+        {
+            app.Urls.Add("http://0.0.0.0:80");
+        }
+        
         app.Run();
     }
 }
