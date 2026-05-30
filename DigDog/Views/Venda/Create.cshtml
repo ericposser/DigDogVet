@@ -1,0 +1,139 @@
+@model DigDog.Models.Venda
+@{
+    ViewData["Title"] = "Nova Venda";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5"><i class="cil-plus me-2"></i>Nova Venda</strong>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="cil-arrow-left me-1"></i> Voltar
+        </a>
+    </div>
+
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+            {
+                <div class="mb-3">
+                    @foreach (var erro in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <p class="text-danger small mb-1">
+                            <i class="cil-warning me-1"></i>@erro.ErrorMessage
+                        </p>
+                    }
+                </div>
+            }
+
+            <div class="row g-3">
+
+                <!-- Produto -->
+                <div class="col-md-6">
+                    <label asp-for="IdProduto" class="form-label fw-semibold"></label>
+                    <select asp-for="IdProduto" class="form-select" asp-items="ViewBag.IdProduto"
+                            id="selectProduto">
+                        <option value="">— Selecione o produto —</option>
+                    </select>
+                    <span asp-validation-for="IdProduto" class="text-danger small"></span>
+                </div>
+
+                <!-- Quantidade -->
+                <div class="col-md-3">
+                    <label asp-for="Quantidade" class="form-label fw-semibold"></label>
+                    <input asp-for="Quantidade" class="form-control" type="number"
+                           min="1" id="campQuantidade" placeholder="0" />
+                    <span asp-validation-for="Quantidade" class="text-danger small"></span>
+                </div>
+
+                <!-- Estoque disponível -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Estoque Disponível</label>
+                    <input class="form-control" id="campEstoque" readonly disabled value="—" />
+                </div>
+
+                <!-- Preço Unitário -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Preço Unitário</label>
+                    <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input class="form-control" id="campPrecoUnitario" readonly disabled value="—" />
+                    </div>
+                </div>
+
+                <!-- Total -->
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Total</label>
+                    <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input class="form-control fw-semibold" id="campTotal" readonly disabled value="—" />
+                    </div>
+                </div>
+
+                <!-- Observações -->
+                <div class="col-12">
+                    <label asp-for="Observacoes" class="form-label fw-semibold"></label>
+                    <textarea asp-for="Observacoes" class="form-control" rows="2"
+                              placeholder="Observações sobre a venda..."></textarea>
+                </div>
+
+            </div>
+
+            <div class="mt-4 pt-3 border-top d-flex gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="cil-x me-1"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="cil-cart me-1"></i> Finalizar Venda
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        const selectProduto   = document.getElementById('selectProduto');
+        const campQuantidade  = document.getElementById('campQuantidade');
+        const campEstoque     = document.getElementById('campEstoque');
+        const campPrecoUnit   = document.getElementById('campPrecoUnitario');
+        const campTotal       = document.getElementById('campTotal');
+
+        let precoAtual = 0;
+
+        function formatarMoeda(valor) {
+            return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function calcularTotal() {
+            const qtd = parseInt(campQuantidade.value) || 0;
+            const total = qtd * precoAtual;
+            campTotal.value = total > 0 ? formatarMoeda(total) : '—';
+        }
+
+        selectProduto.addEventListener('change', async function () {
+            const id = this.value;
+            if (!id) {
+                campEstoque.value = '—';
+                campPrecoUnit.value = '—';
+                campTotal.value = '—';
+                precoAtual = 0;
+                return;
+            }
+
+            const resp = await fetch(`/Venda/ObterPrecoProduto/${id}`);
+            if (!resp.ok) return;
+
+            const dados = await resp.json();
+            precoAtual = dados.preco;
+            campEstoque.value = dados.estoque + ' un.';
+            campPrecoUnit.value = formatarMoeda(dados.preco);
+            calcularTotal();
+        });
+
+        campQuantidade.addEventListener('input', calcularTotal);
+    </script>
+}

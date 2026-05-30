@@ -1,0 +1,62 @@
+/* ── FullCalendar ────────────────────────────────────────────────────── */
+.fc a {
+    text-decoration: none !important;
+    color: inherit !important;
+}
+
+.fc .fc-col-header-cell-cushion,
+.fc .fc-daygrid-day-number,
+.fc .fc-list-event-title a {
+    text-decoration: none !important;
+    color: inherit !important;
+}
+
+.fc {
+    --fc-border-color: var(--cui-border-color);
+    --fc-page-bg-color: transparent;
+    --fc-neutral-bg-color: var(--cui-body-bg);
+    --fc-list-event-hover-bg-color: var(--cui-tertiary-bg);
+    --fc-today-bg-color: rgba(var(--cui-primary-rgb), 0.1);
+    --fc-neutral-text-color: var(--cui-body-color);
+    --fc-event-text-color: #fff;
+}
+
+.fc .fc-col-header-cell {
+    background-color: var(--cui-tertiary-bg);
+    color: var(--cui-body-color);
+}
+
+.fc .fc-toolbar-title {
+    color: var(--cui-body-color);
+}
+
+.fc .fc-button {
+    background-color: var(--cui-tertiary-bg) !important;
+    border-color: var(--cui-border-color) !important;
+    color: var(--cui-body-color) !important;
+}
+
+.fc .fc-button:hover {
+    background-color: var(--cui-secondary-bg) !important;
+}
+
+.fc .fc-button-active {
+    background-color: var(--cui-primary) !important;
+    border-color: var(--cui-primary) !important;
+    color: #fff !important;
+}
+
+.fc .fc-daygrid-day-number,
+.fc .fc-col-header-cell-cushion {
+    color: var(--cui-body-color) !important;
+}
+
+.fc .fc-list-day-cushion {
+    background-color: var(--cui-tertiary-bg) !important;
+    color: var(--cui-body-color) !important;
+}
+
+.fc .fc-list-empty {
+    background-color: var(--cui-body-bg) !important;
+    color: var(--cui-body-color) !important;
+}

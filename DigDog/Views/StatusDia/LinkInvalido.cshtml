@@ -1,0 +1,41 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="pt-BR" data-coreui-theme="auto">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Link inválido</title>
+    <link href="https://cdn.jsdelivr.net/npm/@@coreui/coreui@5.6.1/dist/css/coreui.min.css"
+          rel="stylesheet"
+          integrity="sha384-q/at3GHMpO8VjBXzZ+ymx89MhqKtK9AcxYuECgmRq1b2a3797G4sfEM/ylqgywpd"
+          crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@coreui/icons@3.0.1/css/all.min.css" />
+    <style>
+        body { background-color: #f3f4f7; }
+        [data-coreui-theme="dark"] body { background-color: #1c212b; }
+    </style>
+    <script>
+        (function () {
+            const t = localStorage.getItem('coreui-theme') || 'auto';
+            const d = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-coreui-theme',
+                t === 'auto' ? (d ? 'dark' : 'light') : t);
+        })();
+    </script>
+</head>
+<body class="d-flex align-items-center justify-content-center min-vh-100">
+<div class="text-center px-4" style="max-width:440px">
+    <i class="cil-link-broken text-danger" style="font-size:4rem;opacity:.7"></i>
+    <h1 class="fs-3 fw-bold mt-4">Link inválido ou expirado</h1>
+    <p class="text-body-secondary mt-2">
+        Este link do Status do Dia não é mais válido. Pode ter expirado (os links duram apenas até
+        a meia-noite) ou sido revogado pelo estabelecimento.
+    </p>
+    <p class="text-body-secondary small">
+        Solicite um novo link diretamente ao seu petshop ou clínica veterinária.
+    </p>
+</div>
+</body>
+</html>

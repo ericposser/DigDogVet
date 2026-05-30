@@ -1,0 +1,99 @@
+@model DigDog.Models.Cliente
+@{
+    ViewData["Title"] = "Novo Tutor";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5"><i class="cil-user-follow me-2"></i>Novo Tutor</strong>
+    </div>
+
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 shadow-sm small" role="alert"></div>
+
+            <div class="row g-3">
+
+                <!-- Nome -->
+                <div class="col-md-6">
+                    <label asp-for="Nome" class="form-label fw-semibold"></label>
+                    <input asp-for="Nome" class="form-control" placeholder="Nome completo do tutor" />
+                    <span asp-validation-for="Nome" class="text-danger small"></span>
+                </div>
+
+                <!-- CPF -->
+                <div class="col-md-6">
+                    <label asp-for="Cpf" class="form-label fw-semibold"></label>
+                    <input asp-for="Cpf" id="campCpf" class="form-control"
+                           placeholder="000.000.000-00" maxlength="14" />
+                    <span asp-validation-for="Cpf" class="text-danger small"></span>
+                </div>
+
+                <!-- Telefone -->
+                <div class="col-md-6">
+                    <label asp-for="Telefone" class="form-label fw-semibold"></label>
+                    <input asp-for="Telefone" id="campTelefone" class="form-control"
+                           placeholder="(00) 00000-0000" />
+                    <span asp-validation-for="Telefone" class="text-danger small"></span>
+                </div>
+
+                <!-- E-mail -->
+                <div class="col-md-6">
+                    <label asp-for="Email" class="form-label fw-semibold"></label>
+                    <input asp-for="Email" class="form-control" placeholder="email@exemplo.com" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <!-- Endereço -->
+                <div class="col-md-12">
+                    <label asp-for="Endereco" class="form-label fw-semibold"></label>
+                    <input asp-for="Endereco" class="form-control"
+                           placeholder="Rua, número, bairro, cidade — UF" />
+                    <span asp-validation-for="Endereco" class="text-danger small"></span>
+                </div>
+
+            </div>
+
+            <!-- Botões -->
+            <div class="mt-4 pt-3 border-top d-flex gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="cil-x me-1"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="cil-save me-1"></i> Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        // Máscara CPF
+        document.getElementById('campCpf').addEventListener('input', function (e) {
+            let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+            if (v.length > 9)
+                v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+            else if (v.length > 6)
+                v = v.replace(/^(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+            else if (v.length > 3)
+                v = v.replace(/^(\d{3})(\d{0,3})/, '$1.$2');
+            e.target.value = v;
+        });
+
+        // Máscara Telefone
+        document.getElementById('campTelefone').addEventListener('input', function (e) {
+            let valor = e.target.value.replace(/\D/g, '');
+            if (valor.length > 11) valor = valor.substring(0, 11);
+            if (valor.length <= 10)
+                valor = valor.replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2');
+            else
+                valor = valor.replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
+            e.target.value = valor;
+        });
+    </script>
+}

@@ -1,0 +1,59 @@
+@model DigDog.Models.Vacina
+@{
+    ViewData["Title"] = "Editar Vacina";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5"><i class="cil-pencil me-2"></i>Editar Vacina</strong>
+    </div>
+
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@ViewBag.IdCriptografado" method="post">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 shadow-sm small" role="alert"></div>
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <label asp-for="Nome" class="form-label fw-semibold"></label>
+                    <input asp-for="Nome" class="form-control" />
+                    <span asp-validation-for="Nome" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Fabricante" class="form-label fw-semibold"></label>
+                    <input asp-for="Fabricante" class="form-control" />
+                    <span asp-validation-for="Fabricante" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Lote" class="form-label fw-semibold"></label>
+                    <input asp-for="Lote" class="form-control" />
+                    <span asp-validation-for="Lote" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="DataValidade" class="form-label fw-semibold"></label>
+                    <input asp-for="DataValidade" class="form-control" type="date" />
+                    <span asp-validation-for="DataValidade" class="text-danger small"></span>
+                </div>
+
+            </div>
+
+            <div class="mt-4 pt-3 border-top d-flex gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="cil-x me-1"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="cil-save me-1"></i> Salvar Alterações
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

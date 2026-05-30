@@ -1,0 +1,226 @@
+@model DigDog.Models.Vacinacao
+@{
+    ViewData["Title"] = "Nova Vacinação";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5"><i class="cil-plus me-2"></i>Nova Vacinação</strong>
+    </div>
+
+    <div class="card-body">
+        <form asp-action="Create" method="post" id="formVacinacao">
+            @Html.AntiForgeryToken()
+
+            @* Erros do servidor *@
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+            {
+                <div class="mb-3">
+                    @foreach (var erro in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <p class="text-danger small mb-1">
+                            <i class="cil-warning me-1"></i>@erro.ErrorMessage
+                        </p>
+                    }
+                </div>
+            }
+
+            <div class="row g-3">
+
+                <!-- Pet -->
+                <div class="col-md-6">
+                    <label asp-for="IdPet" class="form-label fw-semibold"></label>
+                    <select asp-for="IdPet" class="form-select" asp-items="ViewBag.IdPet">
+                        <option value="">— Selecione o pet —</option>
+                    </select>
+                    <span asp-validation-for="IdPet" class="text-danger small"></span>
+                </div>
+
+                <!-- Data de Aplicação -->
+                <div class="col-md-6">
+                    <label asp-for="DataAplicacao" class="form-label fw-semibold"></label>
+                    <input asp-for="DataAplicacao" class="form-control" type="date"
+                           max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    <span asp-validation-for="DataAplicacao" class="text-danger small"></span>
+                </div>
+
+                <!-- Próxima Dose -->
+                <div class="col-md-6">
+                    <label asp-for="DataProximaDose" class="form-label fw-semibold"></label>
+                    <input asp-for="DataProximaDose" class="form-control" type="date" />
+                    <span asp-validation-for="DataProximaDose" class="text-danger small"></span>
+                </div>
+
+                <!-- Observações -->
+                <div class="col-md-6">
+                    <label asp-for="Observacoes" class="form-label fw-semibold"></label>
+                    <textarea asp-for="Observacoes" class="form-control" rows="1"
+                              placeholder="Reações, intercorrências..."></textarea>
+                </div>
+
+            </div>
+
+            <!-- Seção de Vacinas -->
+            <div class="mt-4 pt-3 border-top">
+                <p class="fw-semibold mb-3"><i class="cil-eyedropper me-1"></i> Vacinas Aplicadas</p>
+
+                <!-- Seletores -->
+                <div class="row g-2 align-items-end mb-2">
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold">Vacina</label>
+                        <select id="selectVacina" class="form-select">
+                            <option value="">— Selecione —</option>
+                            @foreach (var v in ViewBag.IdVacina as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)
+                            {
+                                <option value="@v.Value">@v.Text</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Dose</label>
+                        <select id="selectDose" class="form-select">
+                            <option value="">— Selecione —</option>
+                            <option value="1ª Dose">1ª Dose</option>
+                            <option value="2ª Dose">2ª Dose</option>
+                            <option value="3ª Dose">3ª Dose</option>
+                            <option value="Reforço Anual">Reforço Anual</option>
+                            <option value="Dose Única">Dose Única</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="adicionarVacina()">
+                            <i class="cil-plus me-1"></i> Adicionar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Erro inline do JS -->
+                <div id="erroVacina" class="text-danger small mb-2" style="display:none;"></div>
+
+                <!-- Lista de vacinas adicionadas -->
+                <div id="listaVacinas">
+                    <p class="text-body-secondary small fst-italic">Nenhuma vacina adicionada ainda.</p>
+                </div>
+
+                <!-- Inputs ocultos enviados ao servidor -->
+                <div id="inputsOcultos"></div>
+            </div>
+
+            <!-- Botões -->
+            <div class="mt-4 pt-3 border-top d-flex gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="cil-x me-1"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary" onclick="return validarVacinas()">
+                    <i class="cil-save me-1"></i> Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        const vacinasSelecionadas = [];
+
+        function mostrarErro(msg) {
+            const erro = document.getElementById('erroVacina');
+            erro.textContent = msg;
+            erro.style.display = 'block';
+            setTimeout(() => erro.style.display = 'none', 3000);
+        }
+
+        function adicionarVacina() {
+            const selectVacina = document.getElementById('selectVacina');
+            const selectDose   = document.getElementById('selectDose');
+
+            const idVacina   = selectVacina.value;
+            const nomeVacina = selectVacina.options[selectVacina.selectedIndex].text;
+            const dose       = selectDose.value;
+
+            if (!idVacina) {
+                mostrarErro('Selecione uma vacina.');
+                return;
+            }
+
+            if (vacinasSelecionadas.some(v => v.idVacina === idVacina)) {
+                mostrarErro('Esta vacina já foi adicionada.');
+                return;
+            }
+
+            vacinasSelecionadas.push({ idVacina, nomeVacina, dose });
+            renderizarLista();
+
+            selectVacina.value = '';
+            selectDose.value   = '';
+        }
+
+        function removerVacina(idVacina) {
+            const index = vacinasSelecionadas.findIndex(v => v.idVacina === idVacina);
+            if (index > -1) vacinasSelecionadas.splice(index, 1);
+            renderizarLista();
+        }
+
+        function renderizarLista() {
+            const lista        = document.getElementById('listaVacinas');
+            const inputsOcultos = document.getElementById('inputsOcultos');
+
+            lista.innerHTML        = '';
+            inputsOcultos.innerHTML = '';
+
+            if (vacinasSelecionadas.length === 0) {
+                lista.innerHTML = '<p class="text-body-secondary small fst-italic">Nenhuma vacina adicionada ainda.</p>';
+                return;
+            }
+
+            const tabela = document.createElement('table');
+            tabela.className = 'table table-sm table-striped table-hover mb-0 border-top align-middle';
+            tabela.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Vacina</th>
+                        <th>Dose</th>
+                        <th class="text-end">Remover</th>
+                    </tr>
+                </thead>
+                <tbody id="corpoTabela"></tbody>
+            `;
+
+            lista.appendChild(tabela);
+            const corpo = document.getElementById('corpoTabela');
+
+            vacinasSelecionadas.forEach((v, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-semibold">${v.nomeVacina}</td>
+                    <td>${v.dose || '—'}</td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                onclick="removerVacina('${v.idVacina}')">
+                            <i class="cil-trash"></i>
+                        </button>
+                    </td>
+                `;
+                corpo.appendChild(tr);
+
+                inputsOcultos.innerHTML += `
+                    <input type="hidden" name="Vacinas[${i}].IdVacina" value="${v.idVacina}" />
+                    <input type="hidden" name="Vacinas[${i}].Dose"     value="${v.dose}" />
+                `;
+            });
+        }
+
+        function validarVacinas() {
+            if (vacinasSelecionadas.length === 0) {
+                mostrarErro('Adicione pelo menos uma vacina antes de salvar.');
+                return false;
+            }
+            return true;
+        }
+    </script>
+}

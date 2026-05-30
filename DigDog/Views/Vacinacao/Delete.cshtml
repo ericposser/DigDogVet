@@ -1,0 +1,67 @@
+@model DigDog.Models.Vacinacao
+@{
+    ViewData["Title"] = "Excluir Vacinação";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5 text-danger"><i class="cil-trash me-2"></i>Excluir Vacinação</strong>
+    </div>
+
+    <div class="card-body">
+
+        <div class="alert alert-danger border-0 shadow-sm mb-4">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="cil-warning"></i>
+                <strong>Atenção! Esta ação não pode ser desfeita.</strong>
+            </div>
+            <small>
+                O registro de vacinação de <strong>@(Model.Vacina?.Nome ?? "—")</strong>
+                aplicada em <strong>@(Model.Pet?.Nome ?? "—")</strong> em
+                <strong>@Model.DataAplicacao.ToString("dd/MM/yyyy")</strong>
+                será <strong>permanentemente removido</strong>.
+            </small>
+        </div>
+
+        <dl class="row mb-0">
+            <dt class="col-sm-3 fw-semibold">Pet</dt>
+            <dd class="col-sm-9">@(Model.Pet?.Nome ?? "—")</dd>
+
+            <dt class="col-sm-3 fw-semibold">Vacina</dt>
+            <dd class="col-sm-9">@(Model.Vacina?.Nome ?? "—")</dd>
+
+            <dt class="col-sm-3 fw-semibold">Dose</dt>
+            <dd class="col-sm-9">@(Model.Dose ?? "—")</dd>
+
+            <dt class="col-sm-3 fw-semibold">Data de Aplicação</dt>
+            <dd class="col-sm-9">@Model.DataAplicacao.ToString("dd/MM/yyyy")</dd>
+
+            <dt class="col-sm-3 fw-semibold">Próxima Dose</dt>
+            <dd class="col-sm-9">
+                @(Model.DataProximaDose.HasValue
+                    ? Model.DataProximaDose.Value.ToString("dd/MM/yyyy")
+                    : "—")
+            </dd>
+
+            @if (!string.IsNullOrEmpty(Model.Observacoes))
+            {
+                <dt class="col-sm-3 fw-semibold">Observações</dt>
+                <dd class="col-sm-9">@Model.Observacoes</dd>
+            }
+        </dl>
+
+        <div class="mt-4 pt-3 border-top d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="cil-x me-1"></i> Cancelar
+            </a>
+            <form asp-action="Delete" asp-route-id="@ViewBag.IdCriptografado" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <button type="submit" class="btn btn-danger">
+                    <i class="cil-trash me-1"></i> Confirmar Exclusão
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>

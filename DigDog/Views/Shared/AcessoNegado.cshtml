@@ -1,0 +1,21 @@
+@{
+    ViewData["Title"] = "Acesso Negado";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary">
+        <strong class="fs-5 text-danger">
+            <i class="cil-ban me-2"></i>Acesso Negado
+        </strong>
+    </div>
+    <div class="card-body text-center py-5">
+        <i class="cil-lock-locked text-danger" style="font-size: 3.5rem; opacity:.7"></i>
+        <h4 class="mt-4 fw-bold">Você não tem permissão para acessar esta página.</h4>
+        <p class="text-body-secondary mt-2 mb-4">
+            Caso acredite que isso seja um erro, entre em contato com o administrador do sistema.
+        </p>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">
+            <i class="cil-home me-1"></i> Voltar ao Painel
+        </a>
+    </div>
+</div>

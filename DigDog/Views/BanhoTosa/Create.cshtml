@@ -1,0 +1,105 @@
+@model DigDog.Models.BanhoTosa
+@{
+    ViewData["Title"] = "Novo Agendamento";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5"><i class="cil-plus me-2"></i>Novo Agendamento</strong>
+    </div>
+
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 shadow-sm small" role="alert"></div>
+
+            <div class="row g-3">
+
+                <!-- Pet -->
+                <div class="col-md-6">
+                    <label asp-for="IdPet" class="form-label fw-semibold"></label>
+                    <select asp-for="IdPet" class="form-select" asp-items="ViewBag.IdPet">
+                        <option value="">— Selecione o pet —</option>
+                    </select>
+                    <span asp-validation-for="IdPet" class="text-danger small"></span>
+                </div>
+
+                <!-- Data e Hora -->
+                <div class="col-md-6">
+                    <label asp-for="DataHora" class="form-label fw-semibold"></label>
+                    <input asp-for="DataHora" class="form-control" type="datetime-local" />
+                    <span asp-validation-for="DataHora" class="text-danger small"></span>
+                </div>
+
+                <!-- Tipo de Serviço -->
+                <div class="col-md-6">
+                    <label asp-for="TipoServico" class="form-label fw-semibold"></label>
+                    <select asp-for="TipoServico" class="form-select">
+                        <option value="">— Selecione —</option>
+                        <option value="Banho">Banho</option>
+                        <option value="Tosa">Tosa</option>
+                        <option value="Banho e Tosa">Banho e Tosa</option>
+                        <option value="Tosa Higiênica">Tosa Higiênica</option>
+                        <option value="Hidratação">Hidratação</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                    <span asp-validation-for="TipoServico" class="text-danger small"></span>
+                </div>
+
+                <!-- Valor -->
+                <div class="col-md-6">
+                    <label asp-for="Valor" class="form-label fw-semibold"></label>
+                    <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input asp-for="Valor" class="form-control" type="text"
+                               inputmode="numeric" placeholder="0,00"
+                               data-val="false" />
+                    </div>
+                    <span asp-validation-for="Valor" class="text-danger small"></span>
+                </div>
+
+                <!-- Observações -->
+                <div class="col-12">
+                    <label asp-for="Observacoes" class="form-label fw-semibold"></label>
+                    <textarea asp-for="Observacoes" class="form-control" rows="3"
+                              placeholder="Observações sobre o serviço..."></textarea>
+                    <span asp-validation-for="Observacoes" class="text-danger small"></span>
+                </div>
+
+            </div>
+
+            <div class="mt-4 pt-3 border-top d-flex gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="cil-x me-1"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="cil-save me-1"></i> Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        const campValor = document.getElementById('Valor');
+
+        campValor.addEventListener('input', function () {
+            let apenasNumeros = this.value.replace(/\D/g, '');
+            if (!apenasNumeros) { this.value = ''; return; }
+            let numero = (parseInt(apenasNumeros) / 100).toFixed(2);
+            this.value = numero
+                .replace('.', ',')
+                .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        });
+
+        document.querySelector('form').addEventListener('submit', function () {
+            $(campValor).rules && $(campValor).rules('remove');
+            let v = campValor.value.replace(/\./g, '').replace(',', '.');
+            campValor.value = isNaN(parseFloat(v)) ? '' : parseFloat(v).toFixed(2);
+        });
+    </script>
+}

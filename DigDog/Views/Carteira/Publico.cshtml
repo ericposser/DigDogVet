@@ -1,0 +1,240 @@
+    @using DigDog.Models
+    @model (Pet Pet, List<Vacinacao> Vacinacoes)
+    @{
+        Layout = null;
+
+        var nomeEstabelecimento = (string)ViewBag.NomeEstabelecimento;
+        var fotoBytes           = (byte[]?)ViewBag.FotoBytes;
+        var fotoMime            = (string?)ViewBag.FotoMime;
+
+        var pet        = Model.Pet;
+        var vacinacoes = Model.Vacinacoes;
+        var hoje       = DateTime.Today;
+    }
+
+    <!DOCTYPE html>
+    <html lang="pt-BR" data-coreui-theme="auto">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Carteirinha de @pet.Nome — @nomeEstabelecimento</title>
+
+        <link href="https://cdn.jsdelivr.net/npm/@@coreui/coreui@5.6.1/dist/css/coreui.min.css"
+              rel="stylesheet"
+              integrity="sha384-q/at3GHMpO8VjBXzZ+ymx89MhqKtK9AcxYuECgmRq1b2a3797G4sfEM/ylqgywpd"
+              crossorigin="anonymous" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@coreui/icons@3.0.1/css/all.min.css" />
+
+        <style>
+            body { background-color: #f3f4f7; min-height: 100vh; }
+            [data-coreui-theme="dark"] body { background-color: #1c212b; }
+
+            .card-carteira {
+                border-radius: 16px;
+                max-width: 640px;
+                margin: 0 auto;
+            }
+
+            /* Linha de vacina */
+            .linha-vacina {
+                border-radius: 10px;
+                padding: .75rem 1rem;
+                margin-bottom: .5rem;
+                background: var(--cui-body-bg);
+                border: 1px solid rgba(0,0,0,.07);
+                box-shadow: 0 1px 3px rgba(0,0,0,.05);
+            }
+
+            .linha-vacina .nome-vacina  { font-weight: 600; font-size: .95rem; }
+            .linha-vacina .info-vacina  { font-size: .78rem; color: var(--cui-secondary-color); }
+
+            /* Badge de status */
+            .badge-status { font-size: .72rem; padding: .28rem .65rem; border-radius: 50px; }
+        </style>
+
+        <script>
+            (function () {
+                const tema = localStorage.getItem('coreui-theme') || 'auto';
+                const prefereDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-coreui-theme',
+                    tema === 'auto' ? (prefereDark ? 'dark' : 'light') : tema);
+            })();
+        </script>
+    </head>
+    <body>
+
+    <!-- ── Header ─────────────────────────────────────────────────────── -->
+    <header class="py-3 mb-4 border-bottom bg-body shadow-sm">
+        <div class="container px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                @if (fotoBytes != null)
+                {
+                    var base64 = Convert.ToBase64String(fotoBytes);
+                    var imgSrc = $"data:{fotoMime};base64,{base64}";
+                    <img src="@imgSrc" class="avatar avatar-md rounded-circle" style="object-fit: cover;" />
+                }
+                else
+                {
+                    <div class="avatar avatar-md bg-primary text-white rounded-circle d-flex align-items-center justify-content-center">
+                        <i class="cil-paw"></i>
+                    </div>
+                }
+                <div>
+                    <h1 class="fs-4 fw-bold mb-0">@nomeEstabelecimento</h1>
+                    <p class="text-body-secondary small mb-0">Carteirinha de Vacinação</p>
+                </div>
+            </div>
+            <span class="badge bg-body-tertiary text-body-secondary border">
+                <i class="cil-eye me-1"></i>Somente visualização
+            </span>
+        </div>
+    </header>
+
+    <!-- ── Conteúdo ───────────────────────────────────────────────────── -->
+    <div class="container px-4 pb-5">
+
+        <!-- Card do pet -->
+        <div class="card card-carteira shadow-sm mb-4">
+            <div class="card-body text-center py-4 px-4">
+
+                <!-- Ícone e dados do pet -->
+                <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center
+                            justify-content-center mb-3" style="width:72px;height:72px">
+                    <i class="cil-animal text-primary" style="font-size:2rem"></i>
+                </div>
+                <h2 class="fs-3 fw-bold mb-1">@pet.Nome</h2>
+
+                <div class="d-flex justify-content-center flex-wrap gap-2 mb-3">
+                    <span class="badge bg-body-secondary text-body-secondary">
+                        <i class="cil-tag me-1"></i>@pet.Especie
+                    </span>
+                    @if (!string.IsNullOrWhiteSpace(pet.Raca))
+                    {
+                        <span class="badge bg-body-secondary text-body-secondary">
+                            @pet.Raca
+                        </span>
+                    }
+                    @if (pet.DataNascimento.HasValue)
+                    {
+                        <span class="badge bg-body-secondary text-body-secondary">
+                            <i class="cil-calendar me-1"></i>
+                            Nasc. @pet.DataNascimento.Value.ToString("dd/MM/yyyy")
+                        </span>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(pet.Sexo))
+                    {
+                        <span class="badge bg-body-secondary text-body-secondary">
+                            @pet.Sexo
+                        </span>
+                    }
+                </div>
+
+                @if (pet.Cliente != null)
+                {
+                    <p class="text-body-secondary small mb-0">
+                        <i class="cil-user me-1"></i>Tutor: <strong>@pet.Cliente.Nome</strong>
+                    </p>
+                }
+            </div>
+
+            <!-- Resumo rápido -->
+            @{
+                var totalVacinas  = vacinacoes.Count;
+                var vencidas      = vacinacoes.Count(v => v.DataProximaDose.HasValue && v.DataProximaDose.Value < hoje);
+                var emBreve       = vacinacoes.Count(v => v.DataProximaDose.HasValue && (v.DataProximaDose.Value - hoje).TotalDays <= 7 && v.DataProximaDose.Value >= hoje);
+            }
+            <div class="card-footer bg-body-tertiary py-3">
+                <div class="row g-0 text-center">
+                    <div class="col border-end">
+                        <div class="fw-bold fs-5">@totalVacinas</div>
+                        <div class="text-body-secondary" style="font-size:.75rem">Vacinas</div>
+                    </div>
+                    <div class="col border-end">
+                        <div class="fw-bold fs-5 @(vencidas > 0 ? "text-danger" : "")">@vencidas</div>
+                        <div class="text-body-secondary" style="font-size:.75rem">Vencidas</div>
+                    </div>
+                    <div class="col">
+                        <div class="fw-bold fs-5 @(emBreve > 0 ? "text-warning" : "")">@emBreve</div>
+                        <div class="text-body-secondary" style="font-size:.75rem">Em breve</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de vacinas -->
+        @if (!vacinacoes.Any())
+        {
+            <div class="text-center text-body-secondary py-4">
+                <i class="cil-heart" style="font-size:2.5rem;opacity:.3"></i>
+                <p class="mt-3 small">Nenhuma vacina registrada para este pet.</p>
+            </div>
+        }
+        else
+        {
+            <h6 class="fw-semibold text-body-secondary mb-3 text-uppercase"
+                style="font-size:.72rem;letter-spacing:.06em">
+                <i class="cil-list me-1"></i>Histórico de Vacinações
+            </h6>
+
+            @foreach (var vacinacao in vacinacoes)
+            {
+                var diasProxima  = vacinacao.DataProximaDose.HasValue
+                    ? (vacinacao.DataProximaDose.Value - hoje).TotalDays
+                    : (double?)null;
+
+                var (corBadge, textoBadge) = diasProxima switch
+                {
+                    null               => ("secondary", "Sem reforço"),
+                    < 0                => ("danger",    "Vencida"),
+                    <= 7               => ("warning",   "Em breve"),
+                    _                  => ("success",   "Em dia")
+                };
+
+                <div class="linha-vacina">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="flex-grow-1">
+                            <div class="nome-vacina">@(vacinacao.Vacina?.Nome ?? "—")</div>
+                            <div class="info-vacina mt-1 d-flex flex-wrap gap-2">
+                                @if (!string.IsNullOrWhiteSpace(vacinacao.Dose))
+                                {
+                                    <span><i class="cil-eyedropper me-1"></i>@vacinacao.Dose</span>
+                                }
+                                <span>
+                                    <i class="cil-calendar me-1"></i>
+                                    Aplicado em @vacinacao.DataAplicacao.ToString("dd/MM/yyyy")
+                                </span>
+                                @if (vacinacao.DataProximaDose.HasValue)
+                                {
+                                    <span>
+                                        <i class="cil-clock me-1"></i>
+                                        Próxima: @vacinacao.DataProximaDose.Value.ToString("dd/MM/yyyy")
+                                    </span>
+                                }
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(vacinacao.Observacoes))
+                            {
+                                <div class="info-vacina mt-1">
+                                    <i class="cil-notes me-1"></i>@vacinacao.Observacoes
+                                </div>
+                            }
+                        </div>
+                        <span class="badge bg-@corBadge badge-status flex-shrink-0">@textoBadge</span>
+                    </div>
+                </div>
+            }
+        }
+
+        <!-- Rodapé discreto -->
+        <div class="text-center mt-4">
+            <span class="text-body-secondary" style="font-size:.72rem">
+                <i class="cil-paw me-1"></i>Feito por <strong>DigDogVet</strong>
+            </span>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@@coreui/coreui@5.6.1/dist/js/coreui.bundle.min.js"
+            integrity="sha384-bfWw6UWgmz1820GDTev34DLTN/eDwwySOsuWriOxV32ZBfwFgiPaDzvOP+vG0Yur"
+            crossorigin="anonymous"></script>
+    </body>
+    </html>

@@ -1,0 +1,382 @@
+@using DigDog.Models
+@model DigDog.Models.BanhoTosa
+@{
+    Layout = null;
+
+    var nomeEstabelecimento = (string)ViewBag.NomeEstabelecimento;
+    var fotoBytes           = (byte[]?)ViewBag.FotoBytes;
+    var fotoMime            = (string?)ViewBag.FotoMime;
+    var tokenPublico        = (string)ViewBag.TokenPublico;
+    var dataHoje            = (string)ViewBag.DataHoje;
+
+    var etapas = new[]
+    {
+        (Status: StatusKanban.Aguardando,       Titulo: "Aguardando",         Icone: "cil-clock",        Cor: "secondary"),
+        (Status: StatusKanban.NoBanho,          Titulo: "No Banho",           Icone: "cil-drop",         Cor: "primary"),
+        (Status: StatusKanban.EmSecagem,        Titulo: "Em Secagem",         Icone: "cil-sun",          Cor: "warning"),
+        (Status: StatusKanban.ProntoParaBuscar, Titulo: "Pronto para Buscar", Icone: "cil-check-circle", Cor: "success"),
+    };
+
+    var statusAtual = Model.StatusKanban;
+    var indiceAtual = Array.FindIndex(etapas, e => e.Status == statusAtual);
+}
+
+<!DOCTYPE html>
+<html lang="pt-BR" data-coreui-theme="auto">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Status do Pet — @nomeEstabelecimento</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/@@coreui/coreui@5.6.1/dist/css/coreui.min.css"
+          rel="stylesheet"
+          integrity="sha384-q/at3GHMpO8VjBXzZ+ymx89MhqKtK9AcxYuECgmRq1b2a3797G4sfEM/ylqgywpd"
+          crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@coreui/icons@3.0.1/css/all.min.css" />
+
+    <style>
+        body { background-color: #f3f4f7; min-height: 100vh; }
+        [data-coreui-theme="dark"] body { background-color: #1c212b; }
+
+        /* ── Linha de progresso ─────────────────────────────────────── */
+        .progresso-wrapper {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 0;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .etapa-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+            z-index: 1;
+        }
+
+        .etapa-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 22px;
+            left: 50%;
+            width: 100%;
+            height: 3px;
+            background-color: var(--cui-border-color);
+            z-index: 0;
+            transition: background-color .4s ease;
+        }
+        .etapa-item.concluida:not(:last-child)::after {
+            background-color: var(--cui-success);
+        }
+        .etapa-item.ativa:not(:last-child)::after {
+            background-color: var(--cui-border-color);
+        }
+
+        .etapa-circulo {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            border: 3px solid var(--cui-border-color);
+            background: var(--cui-body-bg);
+            color: var(--cui-secondary-color);
+            transition: all .35s ease;
+            position: relative;
+            z-index: 2;
+        }
+        .etapa-item.concluida .etapa-circulo {
+            border-color: var(--cui-success);
+            background: var(--cui-success);
+            color: #fff;
+        }
+        .etapa-item.ativa .etapa-circulo {
+            border-color: var(--cui-primary);
+            background: var(--cui-primary);
+            color: #fff;
+            box-shadow: 0 0 0 5px rgba(var(--cui-primary-rgb), .18);
+        }
+
+        .etapa-label {
+            font-size: .72rem;
+            font-weight: 500;
+            margin-top: .5rem;
+            text-align: center;
+            color: var(--cui-secondary-color);
+            max-width: 80px;
+        }
+        .etapa-item.ativa   .etapa-label { color: var(--cui-primary); font-weight: 600; }
+        .etapa-item.concluida .etapa-label { color: var(--cui-success); }
+
+        /* ── Card do pet ─────────────────────────────────────────────── */
+        .card-pet {
+            border-radius: 16px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* ── Badge de status grande ──────────────────────────────────── */
+        .status-destaque {
+            font-size: 1.05rem;
+            padding: .55rem 1.2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            letter-spacing: .01em;
+        }
+
+        /* ── Animação pulso quando atualiza ──────────────────────────── */
+        @@keyframes pulso-status {
+            0%   { transform: scale(1); }
+            40%  { transform: scale(1.06); }
+            100% { transform: scale(1); }
+        }
+        .status-atualizado { animation: pulso-status .5s ease-out; }
+
+        /* ── Toast de conexão ────────────────────────────────────────── */
+        #toast-conexao {
+            position: fixed; bottom: 1.2rem; left: 50%;
+            transform: translateX(-50%); z-index: 9999; min-width: 260px;
+        }
+    </style>
+
+    <script>
+        (function () {
+            const tema = localStorage.getItem('coreui-theme') || 'auto';
+            const prefereDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-coreui-theme',
+                tema === 'auto' ? (prefereDark ? 'dark' : 'light') : tema);
+        })();
+    </script>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────── -->
+<header class="py-3 mb-4 border-bottom bg-body shadow-sm">
+    <div class="container px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            @if (fotoBytes != null)
+            {
+                var base64 = Convert.ToBase64String(fotoBytes);
+                var imgSrc = $"data:{fotoMime};base64,{base64}";
+                <img src="@imgSrc" class="avatar avatar-md rounded-circle" style="object-fit: cover;" />
+            }
+            else
+            {
+                <div class="avatar avatar-md bg-primary text-white rounded-circle d-flex align-items-center justify-content-center">
+                    <i class="cil-paw"></i>
+                </div>
+            }
+            <div>
+                <h1 class="fs-4 fw-bold mb-0">@nomeEstabelecimento</h1>
+                <p class="text-body-secondary small mb-0 text-capitalize">@dataHoje</p>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span id="indicador-conexao" class="badge bg-secondary">
+                <i class="cil-reload me-1"></i>Conectando…
+            </span>
+            <span class="badge bg-body-tertiary text-body-secondary border">
+                <i class="cil-eye me-1"></i>Somente visualização
+            </span>
+        </div>
+    </div>
+</header>
+
+<!-- ── Conteúdo principal ─────────────────────────────────────────── -->
+<div class="container px-4 pb-5">
+
+    <div class="card card-pet shadow-sm mb-4">
+        <div class="card-body text-center py-4 px-4">
+
+            <div class="mb-3">
+                <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center
+                            justify-content-center mb-3" style="width:72px;height:72px">
+                    <i class="cil-animal text-primary" style="font-size:2rem"></i>
+                </div>
+                <h2 class="fs-3 fw-bold mb-0">@Model.Pet?.Nome</h2>
+                <p class="text-body-secondary small mb-0">@Model.TipoServico</p>
+                <p class="text-body-secondary small">
+                    <i class="cil-clock me-1"></i>Agendado para @Model.DataHora.ToString("HH:mm")
+                </p>
+            </div>
+
+            <div id="area-status" class="mb-4">
+                @{
+                    var (corBadge, textoBadge, iconeBadge) = statusAtual switch
+                    {
+                        StatusKanban.Aguardando       => ("secondary", "Aguardando",         "cil-clock"),
+                        StatusKanban.NoBanho          => ("primary",   "No Banho",           "cil-drop"),
+                        StatusKanban.EmSecagem        => ("warning",   "Em Secagem",         "cil-sun"),
+                        StatusKanban.ProntoParaBuscar => ("success",   "Pronto para Buscar", "cil-check-circle"),
+                        _                             => ("secondary", "Aguardando",         "cil-clock")
+                    };
+                }
+                <span id="badge-status" class="badge bg-@corBadge status-destaque"
+                      data-status="@((int)statusAtual)">
+                    <i class="@iconeBadge me-2" id="icone-status"></i>
+                    <span id="texto-status">@textoBadge</span>
+                </span>
+            </div>
+
+            <div class="progresso-wrapper" id="progresso">
+                @for (int i = 0; i < etapas.Length; i++)
+                {
+                    var etapa = etapas[i];
+                    string classeEtapa = i < indiceAtual  ? "concluida"
+                                       : i == indiceAtual ? "ativa"
+                                                          : "";
+                    <div class="etapa-item @classeEtapa" id="etapa-@i" data-status="@((int)etapa.Status)">
+                        <div class="etapa-circulo">
+                            @if (i < indiceAtual)
+                            {
+                                <i class="cil-check"></i>
+                            }
+                            else
+                            {
+                                <i class="@etapa.Icone"></i>
+                            }
+                        </div>
+                        <span class="etapa-label">@etapa.Titulo</span>
+                    </div>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.Observacoes))
+            {
+                <div class="alert alert-secondary border-0 text-start mt-3 mb-0 py-2 px-3 small">
+                    <i class="cil-notes me-1"></i>@Model.Observacoes
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="text-center mt-2 mb-4">
+        <span class="text-body-secondary" style="font-size:.72rem">
+            <i class="cil-paw me-1"></i>Feito por <strong>DigDogVet</strong>
+        </span>
+    </div>
+
+</div>
+
+<!-- ── Toast de erro de conexão ───────────────────────────────────── -->
+<div id="toast-conexao" class="toast align-items-center text-bg-danger border-0 d-none"
+     role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+        <div class="toast-body">
+            <i class="cil-warning me-2"></i><span id="toast-msg">Erro de conexão</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                onclick="this.closest('.toast').classList.add('d-none')"></button>
+    </div>
+</div>
+
+<!-- ── Scripts ─────────────────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/@@coreui/coreui@5.6.1/dist/js/coreui.bundle.min.js"
+        integrity="sha384-bfWw6UWgmz1820GDTev34DLTN/eDwwySOsuWriOxV32ZBfwFgiPaDzvOP+vG0Yur"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+<script>
+    const TOKEN_PUBLICO = "@tokenPublico";
+    const ID_BANHO_TOSA = @Model.Id;
+
+    const MAPA_STATUS = {
+        0: { cor: "secondary", icone: "cil-clock",        texto: "Aguardando"         },
+        1: { cor: "primary",   icone: "cil-drop",         texto: "No Banho"           },
+        2: { cor: "warning",   icone: "cil-sun",          texto: "Em Secagem"         },
+        3: { cor: "success",   icone: "cil-check-circle", texto: "Pronto para Buscar" },
+    };
+
+    const indicador = document.getElementById("indicador-conexao");
+
+    function setIndicador(estado) {
+        const mapa = {
+            conectando: { classe: "bg-secondary",         icone: "cil-reload",       texto: "Conectando…"   },
+            conectado:  { classe: "bg-success",           icone: "cil-check-circle", texto: "Ao vivo"       },
+            erro:       { classe: "bg-danger",            icone: "cil-warning",      texto: "Sem conexão"   },
+            reconect:   { classe: "bg-warning text-dark", icone: "cil-reload",       texto: "Reconectando…" },
+        };
+        const m = mapa[estado] || mapa.conectando;
+        indicador.className = `badge ${m.classe}`;
+        indicador.innerHTML = `<i class="${m.icone} me-1"></i>${m.texto}`;
+    }
+
+    // Atualiza visual ao receber evento do SignalR — somente leitura
+    function atualizarVisualStatus(novoStatus) {
+        const info = MAPA_STATUS[novoStatus];
+        if (!info) return;
+
+        const badge = document.getElementById("badge-status");
+        badge.className = `badge bg-${info.cor} status-destaque`;
+        document.getElementById("icone-status").className = `${info.icone} me-2`;
+        document.getElementById("texto-status").textContent = info.texto;
+        badge.dataset.status = novoStatus;
+
+        badge.classList.remove("status-atualizado");
+        void badge.offsetWidth;
+        badge.classList.add("status-atualizado");
+
+        const totalEtapas = Object.keys(MAPA_STATUS).length;
+        for (let i = 0; i < totalEtapas; i++) {
+            const el = document.getElementById(`etapa-${i}`);
+            if (!el) continue;
+            el.classList.remove("concluida", "ativa");
+            const iconeEl = el.querySelector(".etapa-circulo i");
+            if (i < novoStatus) {
+                el.classList.add("concluida");
+                if (iconeEl) iconeEl.className = "cil-check";
+            } else if (i === novoStatus) {
+                el.classList.add("ativa");
+                if (iconeEl) iconeEl.className = MAPA_STATUS[i].icone;
+            } else {
+                if (iconeEl) iconeEl.className = MAPA_STATUS[i].icone;
+            }
+        }
+    }
+
+    // ── SignalR — apenas recebe atualizações, nunca envia ──────────
+    const conexao = new signalR.HubConnectionBuilder()
+        .withUrl("/kanbanHub")
+        .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+        .configureLogging(signalR.LogLevel.Warning)
+        .build();
+
+    conexao.on("CardMovido", (idBanhoTosa, novoStatus) => {
+        if (idBanhoTosa === ID_BANHO_TOSA)
+            atualizarVisualStatus(novoStatus);
+    });
+
+    conexao.on("ErroDeConexao", (msg) => {
+        const toast = document.getElementById("toast-conexao");
+        document.getElementById("toast-msg").textContent = msg;
+        toast.classList.remove("d-none");
+    });
+
+    conexao.onreconnecting(() => setIndicador("reconect"));
+    conexao.onreconnected(async () => {
+        setIndicador("conectado");
+        await conexao.invoke("EntrarNaSala", TOKEN_PUBLICO);
+    });
+    conexao.onclose(() => setIndicador("erro"));
+
+    async function iniciarConexao() {
+        try {
+            await conexao.start();
+            await conexao.invoke("EntrarNaSala", TOKEN_PUBLICO);
+            setIndicador("conectado");
+        } catch (e) {
+            setIndicador("erro");
+            setTimeout(iniciarConexao, 5000);
+        }
+    }
+
+    iniciarConexao();
+</script>
+
+</body>
+</html>

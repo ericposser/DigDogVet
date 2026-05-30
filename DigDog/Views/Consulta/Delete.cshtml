@@ -1,0 +1,68 @@
+@model DigDog.Models.Consulta
+@{
+    ViewData["Title"] = "Excluir Consulta";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5 text-danger"><i class="cil-trash me-2"></i>Excluir Consulta</strong>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="cil-arrow-left me-1"></i> Voltar
+        </a>
+    </div>
+
+    <div class="card-body">
+
+        <div class="alert alert-danger border-0 shadow-sm mb-4">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="cil-warning"></i>
+                <strong>Atenção! Esta ação não pode ser desfeita.</strong>
+            </div>
+            <small>
+                A consulta de <strong>@(Model.Pet?.Nome ?? "—")</strong> em
+                <strong>@Model.DataHora.ToString("dd/MM/yyyy HH:mm")</strong>
+                será <strong>permanentemente removida</strong>.
+            </small>
+        </div>
+
+        <dl class="row mb-0">
+            <dt class="col-sm-3 fw-semibold">Pet</dt>
+            <dd class="col-sm-9">@(Model.Pet?.Nome ?? "—")</dd>
+
+            <dt class="col-sm-3 fw-semibold">Data e Hora</dt>
+            <dd class="col-sm-9">@Model.DataHora.ToString("dd/MM/yyyy HH:mm")</dd>
+
+            <dt class="col-sm-3 fw-semibold">Motivo</dt>
+            <dd class="col-sm-9">@Model.Motivo</dd>
+
+            @if (!string.IsNullOrEmpty(Model.Diagnostico))
+            {
+                <dt class="col-sm-3 fw-semibold">Diagnóstico</dt>
+                <dd class="col-sm-9">@Model.Diagnostico</dd>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.Prescricao))
+            {
+                <dt class="col-sm-3 fw-semibold">Prescrição</dt>
+                <dd class="col-sm-9">@Model.Prescricao</dd>
+            }
+
+            <dt class="col-sm-3 fw-semibold">Valor</dt>
+            <dd class="col-sm-9">@(Model.Valor.HasValue ? Model.Valor.Value.ToString("C2") : "—")</dd>
+        </dl>
+
+        <div class="mt-4 pt-3 border-top d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="cil-x me-1"></i> Cancelar
+            </a>
+            <form asp-action="Delete" asp-route-id="@ViewBag.IdCriptografado" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <button type="submit" class="btn btn-danger">
+                    <i class="cil-trash me-1"></i> Confirmar Exclusão
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>

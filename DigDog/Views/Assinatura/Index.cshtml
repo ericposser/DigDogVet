@@ -1,0 +1,318 @@
+@model DigDog.Models.Assinatura
+@{
+    ViewData["Title"] = "Assinatura";
+
+    var diasRestantes = Model != null ? (int)(Model.DataExpiracao - DateTime.Now).TotalDays : 0;
+    var emTeste       = Model?.EmTeste ?? false;
+    var ativa         = Model?.Ativa == true && Model?.DataExpiracao > DateTime.Now;
+
+    var statusTexto = ativa ? (emTeste ? "Em Teste" : "Ativa") : "Expirada";
+    var statusCor   = ativa ? (emTeste ? "#f59e0b" : "#10b981") : "#ef4444";
+    var corDias     = diasRestantes > 10 ? "#10b981" : diasRestantes > 3 ? "#f59e0b" : "#ef4444";
+}
+
+<style>
+    .assinatura-wrapper {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+    }
+
+    .assinatura-card {
+        width: 100%;
+        max-width: 580px;
+        background: var(--cui-body-bg);
+        border: 1px solid var(--cui-border-color);
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+    }
+
+    .assinatura-topo {
+        padding: 1.75rem 2rem 1.5rem;
+        border-bottom: 1px solid var(--cui-border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .assinatura-label-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 14px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        border: 1.5px solid;
+        margin-bottom: 0.6rem;
+    }
+
+    .assinatura-label-status .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        animation: pulsar 2s infinite;
+    }
+
+    @@keyframes pulsar {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50%       { opacity: 0.4; transform: scale(0.65); }
+    }
+
+    .assinatura-titulo {
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+        margin: 0;
+        color: var(--cui-body-color);
+    }
+
+    .assinatura-subtitulo {
+        font-size: 0.83rem;
+        color: var(--cui-secondary-color);
+        margin-top: 0.3rem;
+        line-height: 1.5;
+    }
+
+    .assinatura-corpo {
+        padding: 1.25rem 2rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+    }
+
+    .info-bloco {
+        background: var(--cui-tertiary-bg);
+        border: 1px solid var(--cui-border-color);
+        border-radius: 14px;
+        padding: 0.9rem 1.1rem;
+    }
+
+    .info-bloco .rotulo {
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--cui-secondary-color);
+        margin-bottom: 0.35rem;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .info-bloco .valor {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--cui-body-color);
+    }
+
+    .contagem-wrapper {
+        background: var(--cui-tertiary-bg);
+        border: 1px solid var(--cui-border-color);
+        border-radius: 14px;
+        padding: 1.1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .contagem-esq {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+    }
+
+    .contagem-dias {
+        font-size: 2.5rem;
+        font-weight: 900;
+        letter-spacing: -0.05em;
+        line-height: 1;
+    }
+
+    .contagem-label {
+        font-size: 0.85rem;
+        color: var(--cui-secondary-color);
+        font-weight: 500;
+    }
+
+    .contagem-vencimento {
+        font-size: 0.76rem;
+        color: var(--cui-secondary-color);
+        text-align: right;
+    }
+
+    .alerta-expirado {
+        background: rgba(239,68,68,0.08);
+        border: 1px solid rgba(239,68,68,0.25);
+        color: #ef4444;
+        border-radius: 12px;
+        padding: 0.9rem 1.25rem;
+        font-size: 0.88rem;
+        font-weight: 500;
+        display: flex;
+        gap: 0.65rem;
+        align-items: flex-start;
+    }
+
+    .suporte-bloco {
+        background: var(--cui-tertiary-bg);
+        border: 1px solid var(--cui-border-color);
+        border-radius: 14px;
+        padding: 0.9rem 1.35rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .suporte-texto {
+        font-size: 0.83rem;
+        color: var(--cui-secondary-color);
+        line-height: 1.5;
+    }
+
+    .suporte-texto strong {
+        color: var(--cui-body-color);
+        display: block;
+        font-size: 0.88rem;
+        margin-bottom: 2px;
+    }
+
+    .btn-whatsapp {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #25d366;
+        color: #fff !important;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: background 0.2s;
+    }
+
+    .btn-whatsapp:hover { background: #1ebe5d; }
+
+    .btn-whatsapp svg {
+        width: 15px;
+        height: 15px;
+        fill: #fff;
+        flex-shrink: 0;
+    }
+
+    @@media (max-width: 480px) {
+        .info-grid { grid-template-columns: 1fr 1fr; }
+        .info-grid .info-bloco:last-child { grid-column: span 2; }
+        .assinatura-topo { padding: 1.25rem; }
+        .assinatura-corpo { padding: 1rem 1.25rem 1.25rem; }
+        .contagem-wrapper { flex-direction: column; align-items: flex-start; }
+        .contagem-vencimento { text-align: left; }
+        .suporte-bloco { flex-direction: column; align-items: stretch; }
+        .btn-whatsapp { justify-content: center; width: 100%; }
+    }
+</style>
+
+<div class="assinatura-wrapper">
+    <div class="assinatura-card">
+
+        <div class="assinatura-topo">
+            <div>
+                <div class="assinatura-label-status"
+                     style="color: @statusCor; border-color: @statusCor;">
+                    <span class="dot" style="background: @statusCor;"></span>
+                    @statusTexto
+                </div>
+                <h1 class="assinatura-titulo">
+                    @(emTeste ? "Período de Teste Gratuito" : "Plano Ativo")
+                </h1>
+                <p class="assinatura-subtitulo">
+                    @(emTeste
+                        ? "Você está aproveitando os 30 dias gratuitos do DigDogVet"
+                        : "Sua assinatura está ativa e todos os recursos estão disponíveis")
+                </p>
+            </div>
+        </div>
+
+        <div class="assinatura-corpo">
+
+            @if (Model == null)
+            {
+                <div class="alerta-expirado">
+                    <i class="cil-warning"></i>
+                    Nenhuma assinatura encontrada. Entre em contato com o suporte.
+                </div>
+            }
+            else
+            {
+                <div class="info-grid">
+                    <div class="info-bloco">
+                        <div class="rotulo"><i class="cil-calendar"></i> Início</div>
+                        <div class="valor">@Model.DataInicio.ToString("dd/MM/yyyy")</div>
+                    </div>
+                    <div class="info-bloco">
+                        <div class="rotulo"><i class="cil-calendar"></i> Expiração</div>
+                        <div class="valor">@Model.DataExpiracao.ToString("dd/MM/yyyy")</div>
+                    </div>
+                    <div class="info-bloco">
+                        <div class="rotulo"><i class="cil-layers"></i> Tipo</div>
+                        <div class="valor" style="color: @statusCor;">@(emTeste ? "Teste" : "Assinatura")</div>
+                    </div>
+                </div>
+
+                @if (ativa)
+                {
+                    <div class="contagem-wrapper">
+                        <div class="contagem-esq">
+                            <div class="contagem-dias" style="color: @corDias;">@diasRestantes</div>
+                            <div class="contagem-label">dias restantes</div>
+                        </div>
+                        <div class="contagem-vencimento">
+                            Vence em<br />
+                            <strong>@Model.DataExpiracao.ToString("dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-BR"))</strong>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="alerta-expirado">
+                        <i class="cil-warning"></i>
+                        <span>Sua assinatura expirou ou foi desativada. Entre em contato com o suporte para reativar o acesso.</span>
+                    </div>
+                }
+
+                <div class="suporte-bloco">
+                    <div class="suporte-texto">
+                        <strong>Precisa de ajuda?</strong>
+                        Entre em contato com nossa equipe para tirar dúvidas sobre sua assinatura.
+                    </div>
+                    <a href="https://wa.me/5551989447324" target="_blank" class="btn-whatsapp">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
+                        Falar com suporte
+                    </a>
+                </div>
+            }
+
+        </div>
+    </div>
+</div>

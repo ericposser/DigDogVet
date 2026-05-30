@@ -1,0 +1,218 @@
+@model DigDog.Models.TicketViewModel
+@{
+    ViewData["Title"] = "Enviar Ticket";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+                <strong class="fs-5">
+                    <i class="cil-short-text me-2 text-danger"></i>Enviar Ticket
+                </strong>
+            </div>
+
+            <div class="card-body">
+
+                <div class="alert alert-info border-0 shadow-sm d-flex align-items-start gap-2 mb-4">
+                    <i class="cil-info mt-1 flex-shrink-0"></i>
+                    <div>
+                        <strong>Como funciona?</strong><br>
+                        Preencha as informações abaixo e clique em <strong>Enviar Ticket</strong>.
+                        O ticket será criado automaticamente no quadro da equipe de desenvolvimento.
+                    </div>
+                </div>
+
+                <form asp-action="Enviar" method="post" enctype="multipart/form-data" novalidate>
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="All" class="alert alert-danger border-0 shadow-sm" style="display:@(ViewData.ModelState.IsValid ? "none" : "block")"></div>
+
+                    @* Tipo do Ticket *@
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">
+                            <i class="cil-tag me-1"></i>Tipo do Ticket
+                        </label>
+                        <div class="d-flex gap-3">
+
+                            <div class="flex-fill">
+                                <input type="radio" class="btn-check" asp-for="Tipo" value="erro" id="tipoErro" autocomplete="off">
+                                <label class="btn btn-outline-danger w-100 py-2" for="tipoErro">
+                                    <i class="cil-x-circle d-block mb-1" style="font-size:1.1rem"></i>
+                                    <span class="fw-semibold small">Erro</span>
+                                    <div class="text-muted mt-1" style="font-size:.75rem">Algo está quebrado ou funcionando errado</div>
+                                </label>
+                            </div>
+
+                            <div class="flex-fill">
+                                <input type="radio" class="btn-check" asp-for="Tipo" value="melhoria" id="tipoMelhoria" autocomplete="off">
+                                <label class="btn btn-outline-success w-100 py-2" for="tipoMelhoria">
+                                    <i class="cil-lightbulb d-block mb-1" style="font-size:1.1rem"></i>
+                                    <span class="fw-semibold small">Melhoria</span>
+                                    <div class="text-muted mt-1" style="font-size:.75rem">Sugestão ou nova funcionalidade</div>
+                                </label>
+                            </div>
+
+                        </div>
+                        <span asp-validation-for="Tipo" class="text-danger small"></span>
+                    </div>
+
+
+                    @* Título *@
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label asp-for="Titulo" class="form-label fw-semibold">
+                                <i class="cil-pencil me-1"></i>Título
+                            </label>
+                            <input asp-for="Titulo" class="form-control" placeholder="Ex: Botão de salvar não funciona na tela de pets" maxlength="200" />
+                            <span asp-validation-for="Titulo" class="text-danger small"></span>
+                            <div class="form-text">Seja objetivo, um bom título facilita a triagem.</div>
+                        </div>
+                    </div>
+
+                    @* Descrição *@
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label asp-for="Descricao" class="form-label fw-semibold">
+                                <i class="cil-description me-1"></i>Descrição
+                            </label>
+                            <textarea asp-for="Descricao" class="form-control" rows="5"
+                                placeholder="Descreva o problema ou a melhoria com o máximo de detalhes possível. Inclua os passos para reproduzir, se aplicável." maxlength="2000"></textarea>
+                            <span asp-validation-for="Descricao" class="text-danger small"></span>
+                            <div class="form-text d-flex justify-content-between">
+                                <span>Quanto mais detalhes, mais rápido resolvemos.</span>
+                                <span id="contadorDescricao" class="text-body-secondary">0 / 2000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Imagem *@
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label asp-for="Imagem" class="form-label fw-semibold">
+                                <i class="cil-image me-1"></i>Imagem <span class="text-body-secondary fw-normal">(opcional)</span>
+                            </label>
+
+                            <div class="border rounded p-3 text-center bg-body-tertiary" id="areaUpload" style="cursor:pointer; transition: border-color .2s;">
+                                <i class="cil-cloud-upload d-block mb-2" style="font-size:2rem; opacity:.5"></i>
+                                <p class="mb-1 small fw-semibold">Clique para selecionar ou arraste uma imagem aqui</p>
+                                <p class="mb-0 text-body-secondary" style="font-size:.78rem">JPG, PNG, GIF ou WEBP · máximo 5 MB</p>
+                                <input asp-for="Imagem" type="file" class="d-none" id="inputImagem" accept="image/jpeg,image/png,image/gif,image/webp" />
+                            </div>
+
+                            <span asp-validation-for="Imagem" class="text-danger small"></span>
+
+                            @* Preview *@
+                            <div id="previewImagem" class="mt-3 d-none">
+                                <div class="d-flex align-items-center gap-3 p-2 border rounded bg-body-tertiary">
+                                    <img id="imgPreview" src="#" alt="Preview" class="rounded"
+                                         style="width:80px; height:60px; object-fit:cover;" />
+                                    <div class="flex-fill overflow-hidden">
+                                        <div class="fw-semibold small text-truncate" id="nomeArquivo"></div>
+                                        <div class="text-body-secondary" style="font-size:.78rem" id="tamanhoArquivo"></div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnRemoverImagem" title="Remover imagem">
+                                        <i class="cil-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Botões *@
+                    <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="cil-arrow-left me-1"></i>Voltar ao Painel
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4" id="btnEnviar">
+                            <i class="cil-send me-1"></i>Enviar Ticket
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        // ── Contador de caracteres da descrição ───────────────────────
+        const descricao       = document.getElementById('Descricao');
+        const contadorDescricao = document.getElementById('contadorDescricao');
+
+        descricao?.addEventListener('input', () => {
+            const total = descricao.value.length;
+            contadorDescricao.textContent = `${total} / 2000`;
+            contadorDescricao.classList.toggle('text-danger', total > 1800);
+        });
+
+        // ── Upload de imagem ──────────────────────────────────────────
+        const areaUpload     = document.getElementById('areaUpload');
+        const inputImagem    = document.getElementById('inputImagem');
+        const previewImagem  = document.getElementById('previewImagem');
+        const imgPreview     = document.getElementById('imgPreview');
+        const nomeArquivo    = document.getElementById('nomeArquivo');
+        const tamanhoArquivo = document.getElementById('tamanhoArquivo');
+        const btnRemover     = document.getElementById('btnRemoverImagem');
+
+        areaUpload?.addEventListener('click', () => inputImagem.click());
+
+        areaUpload?.addEventListener('dragover', e => {
+            e.preventDefault();
+            areaUpload.classList.add('border-primary');
+        });
+
+        areaUpload?.addEventListener('dragleave', () => {
+            areaUpload.classList.remove('border-primary');
+        });
+
+        areaUpload?.addEventListener('drop', e => {
+            e.preventDefault();
+            areaUpload.classList.remove('border-primary');
+            const arquivos = e.dataTransfer?.files;
+            if (arquivos?.length > 0) exibirPreview(arquivos[0]);
+        });
+
+        inputImagem?.addEventListener('change', () => {
+            if (inputImagem.files?.length > 0) exibirPreview(inputImagem.files[0]);
+        });
+
+        btnRemover?.addEventListener('click', () => {
+            inputImagem.value = '';
+            previewImagem.classList.add('d-none');
+            areaUpload.classList.remove('d-none');
+        });
+
+        function exibirPreview(arquivo) {
+            const leitor = new FileReader();
+            leitor.onload = e => {
+                imgPreview.src    = e.target.result;
+                nomeArquivo.textContent    = arquivo.name;
+                tamanhoArquivo.textContent = formatarTamanho(arquivo.size);
+                previewImagem.classList.remove('d-none');
+                areaUpload.classList.add('d-none');
+            };
+            leitor.readAsDataURL(arquivo);
+        }
+
+        function formatarTamanho(bytes) {
+            if (bytes < 1024)       return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // ── Feedback visual no botão de envio ────────────────────────
+        document.querySelector('form')?.addEventListener('submit', () => {
+            const btn = document.getElementById('btnEnviar');
+            if (btn) {
+                btn.disabled   = true;
+                btn.innerHTML  = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
+            }
+        });
+    </script>
+}

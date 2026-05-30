@@ -1,0 +1,87 @@
+@model List<DigDog.Models.UsuarioRoleViewModel>
+@{
+    ViewData["Title"] = "Funcionários";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5">
+            <i class="cil-contact me-2"></i>Funcionários
+        </strong>
+        <a asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="cil-plus me-1"></i>Novo Funcionário
+        </a>
+    </div>
+    <div class="card-body p-0">
+        @if (!Model.Any())
+        {
+            <div class="text-center text-body-secondary py-5">
+                <i class="cil-contact" style="font-size:2rem; opacity:.4"></i>
+                <p class="mt-2 mb-0 small fw-semibold">Nenhum funcionário cadastrado ainda.</p>
+                <small>Adicione funcionários e defina os perfis de acesso.</small>
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover table-striped mb-0 border-top">
+                <thead class="table">
+                    <tr>
+                        <th scope="col">Nome</th>
+                        <th scope="col">E-mail</th>
+                        <th scope="col">Telefone</th>
+                        <th scope="col">Perfil de Acesso</th>
+                        <th scope="col" class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ int i = 1; }
+                    @foreach (var usuario in Model)
+                    {
+                        <tr>
+                            <td class="align-middle fw-semibold">
+                                @(usuario.Nome ?? "—")
+                            </td>
+                            <td class="fw-semibold">
+                                <i class="cil-user me-2 text-body-secondary"></i>@usuario.Email
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(usuario.Telefone))
+                                {
+                                    <span><i class="cil-phone me-1 text-body-secondary"></i>@usuario.Telefone</span>
+                                }
+                                else
+                                {
+                                    <span class="text-body-secondary small">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (usuario.NomeRole != null)
+                                {
+                                    <span class="badge bg-primary">@usuario.NomeRole</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Sem perfil</span>
+                                }
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a asp-action="Edit" asp-route-id="@usuario.IdUsuario"
+                                       class="btn btn-outline-primary btn-sm"
+                                       title="Editar" data-coreui-toggle="tooltip">
+                                        <i class="cil-pencil"></i>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@usuario.IdUsuario"
+                                       class="btn btn-outline-danger btn-sm"
+                                       title="Remover" data-coreui-toggle="tooltip">
+                                        <i class="cil-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

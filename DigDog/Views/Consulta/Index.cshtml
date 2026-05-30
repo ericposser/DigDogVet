@@ -1,0 +1,163 @@
+@model IEnumerable<DigDog.Models.Consulta>
+@{
+    ViewData["Title"] = "Consultas";
+}
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.10/index.global.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="~/css/calendario.css" asp-append-version="true" />
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5"><i class="cil-medical-cross me-2"></i>Consultas</strong>
+        <a asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="cil-plus me-1"></i> Nova Consulta
+        </a>
+    </div>
+    <div class="card-body">
+        <div id="calendario"></div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalConsulta" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="cil-medical-cross me-2"></i><span id="modalTitulo"></span></h5>
+                <button type="button" class="btn-close" data-coreui-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 fw-semibold">Pet</dt>
+                    <dd class="col-sm-8" id="modalPet"></dd>
+                    <dt class="col-sm-4 fw-semibold">Tutor</dt>
+                    <dd class="col-sm-8" id="modalTutor"></dd>
+                    <dt class="col-sm-4 fw-semibold">Data e Hora</dt>
+                    <dd class="col-sm-8" id="modalDataHora"></dd>
+                    <dt class="col-sm-4 fw-semibold">Motivo</dt>
+                    <dd class="col-sm-8" id="modalMotivo"></dd>
+                    <dt class="col-sm-4 fw-semibold">Diagnóstico</dt>
+                    <dd class="col-sm-8" id="modalDiagnostico"></dd>
+                    <dt class="col-sm-4 fw-semibold">Prescrição</dt>
+                    <dd class="col-sm-8" id="modalPrescricao"></dd>
+                    <dt class="col-sm-4 fw-semibold">Valor</dt>
+                    <dd class="col-sm-8" id="modalValor"></dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <a id="modalBtnLembrete"
+                   href="#"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="btn btn-outline-success btn-sm d-inline-flex align-items-center gap-2 me-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
+                    </svg>
+                    Lembrete
+                </a>
+                <a id="modalBtnReceituario" class="btn btn-outline-success btn-sm">
+                    <i class="cil-medical-cross me-1"></i> Receituário
+                </a>
+                <a id="modalBtnEditar" class="btn btn-outline-primary btn-sm">
+                    <i class="cil-pencil me-1"></i> Editar
+                </a>
+                <a id="modalBtnExcluir" class="btn btn-outline-danger btn-sm">
+                    <i class="cil-trash me-1"></i> Excluir
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.10/index.global.min.js"></script>
+    <script>
+        const consultas = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Select(c => new {
+                              id    = c.Id,
+                              title = c.Pet != null ? c.Pet.Nome : "Pet não informado",
+                              start = c.DataHora.ToString("yyyy-MM-ddTHH:mm:ss"),
+                              extendedProps = new {
+                                  pet           = c.Pet != null ? c.Pet.Nome : "—",
+                                  tutor         = c.Pet?.Cliente?.Nome ?? "—",
+                                  telefoneTutor = c.Pet?.Cliente?.Telefone ?? "",
+                                  dataHora      = c.DataHora.ToString("dd/MM/yyyy HH:mm"),
+                                  dataHoraTexto = c.DataHora.ToString("dd/MM/yyyy 'às' HH:mm"),
+                                  motivo        = c.Motivo,
+                                  diagnostico   = c.Diagnostico ?? "—",
+                                  prescricao    = c.Prescricao ?? "—",
+                                  valor         = c.Valor.HasValue ? c.Valor.Value.ToString("C2") : "—",
+                                  idCriptografado = (ViewBag.CriptografarId as Func<int, string>)(c.Id)
+                              }
+                          })));
+
+        // Monta URL wa.me a partir dos dados do agendamento
+        function montarUrlLembrete(nomeTutor, nomePet, servico, dataHoraTexto, telefoneTutor) {
+            const telefone = telefoneTutor.replace(/\D/g, '');
+            if (!telefone) return null;
+
+            const telefoneComPais = telefone.startsWith('55') ? telefone : '55' + telefone;
+
+            const mensagem = `Olá, ${nomeTutor}! Só passando para confirmar seu agendamento de `
+                + `${servico} para seu pet *${nomePet}* `
+                + `marcado para *${dataHoraTexto}*. `
+                + `Qualquer dúvida, é só falar! Até lá!`;
+
+            return `https://wa.me/${telefoneComPais}?text=${encodeURIComponent(mensagem)}`;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const isMobile    = window.innerWidth < 768;
+            const calEl       = document.getElementById('calendario');
+            const btnLembrete = document.getElementById('modalBtnLembrete');
+
+            const calendar = new FullCalendar.Calendar(calEl, {
+                initialView: isMobile ? 'listMonth' : 'dayGridMonth',
+                locale: 'pt-br',
+                eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+                headerToolbar: isMobile
+                    ? { left: 'prev,next', center: 'title', right: 'listMonth,dayGridMonth' }
+                    : { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth' },
+                buttonText: { today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia', list: 'Lista' },
+                events: consultas,
+                eventClick: function (info) {
+                    const p = info.event.extendedProps;
+
+                    document.getElementById('modalTitulo').textContent    = info.event.title;
+                    document.getElementById('modalPet').textContent        = p.pet;
+                    document.getElementById('modalTutor').textContent      = p.tutor;
+                    document.getElementById('modalDataHora').textContent   = p.dataHora;
+                    document.getElementById('modalMotivo').textContent     = p.motivo;
+                    document.getElementById('modalDiagnostico').textContent = p.diagnostico;
+                    document.getElementById('modalPrescricao').textContent  = p.prescricao;
+                    document.getElementById('modalValor').textContent      = p.valor;
+                    document.getElementById('modalBtnEditar').href       = '/Consulta/Edit/'   + p.idCriptografado;
+                    document.getElementById('modalBtnExcluir').href      = '/Consulta/Delete/' + p.idCriptografado;
+                    document.getElementById('modalBtnReceituario').href  = '/Receituario/Criar?idConsulta=' + p.idCriptografado;
+
+                    // ── Botão Lembrete ───────────────────────────────────
+                    const urlWpp = montarUrlLembrete(
+                        p.tutor, p.pet, 'consulta', p.dataHoraTexto, p.telefoneTutor
+                    );
+
+                    if (urlWpp) {
+                        btnLembrete.href = urlWpp;
+                        btnLembrete.classList.remove('disabled');
+                        btnLembrete.removeAttribute('aria-disabled');
+                        btnLembrete.title = `Enviar lembrete para ${p.tutor}`;
+                    } else {
+                        btnLembrete.href = '#';
+                        btnLembrete.classList.add('disabled');
+                        btnLembrete.setAttribute('aria-disabled', 'true');
+                        btnLembrete.title = 'Tutor sem telefone cadastrado';
+                    }
+
+                    new coreui.Modal(document.getElementById('modalConsulta')).show();
+                },
+                height: 'auto',
+                themeSystem: 'bootstrap5'
+            });
+
+            calendar.render();
+        });
+    </script>
+    
+}

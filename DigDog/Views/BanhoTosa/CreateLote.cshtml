@@ -1,0 +1,224 @@
+@model DigDog.Models.BanhoTosa
+@{
+    ViewData["Title"] = "Agendamento em Lote";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5"><i class="cil-calendar me-2"></i>Agendamento em Lote</strong>
+    </div>
+
+    <div class="card-body">
+
+        <div class="alert alert-info border-0 shadow-sm small mb-4" role="alert">
+            <i class="cil-info me-2"></i>
+            Crie múltiplos agendamentos de uma só vez. Selecione o pet, os dias da semana, o horário e o período desejado.
+            Horários que já estiverem ocupados serão ignorados automaticamente.
+        </div>
+
+        <form asp-action="CreateLote" method="post">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 shadow-sm small" role="alert"></div>
+
+            <div class="row g-3">
+
+                @* Pet  *@
+                <div class="col-md-6">
+                    <label asp-for="IdPet" class="form-label fw-semibold"></label>
+                    <select asp-for="IdPet" class="form-select" asp-items="ViewBag.IdPet">
+                        <option value="">— Selecione o pet —</option>
+                    </select>
+                    <span asp-validation-for="IdPet" class="text-danger small"></span>
+                </div>
+
+                @* Tipo de Serviço  *@
+                <div class="col-md-6">
+                    <label asp-for="TipoServico" class="form-label fw-semibold"></label>
+                    <select asp-for="TipoServico" class="form-select">
+                        <option value="">— Selecione —</option>
+                        <option value="Banho">Banho</option>
+                        <option value="Tosa">Tosa</option>
+                        <option value="Banho e Tosa">Banho e Tosa</option>
+                        <option value="Tosa Higiênica">Tosa Higiênica</option>
+                        <option value="Hidratação">Hidratação</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                    <span asp-validation-for="TipoServico" class="text-danger small"></span>
+                </div>
+
+                @* Dias da Semana  *@
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Dias da Semana</label>
+                    <div class="d-flex flex-wrap gap-2" id="diasSemanaContainer">
+                        @{
+                            var diasNomes = new[] {
+                                (0, "Dom"),
+                                (1, "Seg"),
+                                (2, "Ter"),
+                                (3, "Qua"),
+                                (4, "Qui"),
+                                (5, "Sex"),
+                                (6, "Sáb")
+                            };
+                        }
+                        @foreach (var (valor, nome) in diasNomes)
+                        {
+                            <div class="dia-semana-item">
+                                <input type="checkbox" name="diasSemana" value="@valor"
+                                       id="dia_@valor" class="btn-check" autocomplete="off" />
+                                <label class="btn btn-outline-primary btn-sm px-3" for="dia_@valor">
+                                    @nome
+                                </label>
+                            </div>
+                        }
+                    </div>
+                    <span class="text-danger small" id="erroDiasSemana"></span>
+                </div>
+
+                @* Horário  *@
+                <div class="col-md-4">
+                    <label for="horario" class="form-label fw-semibold">Horário</label>
+                    <input type="time" id="horario" name="horario" class="form-control" />
+                    <span class="text-danger small" id="erroHorario"></span>
+                </div>
+
+                @* Data Início  *@
+                <div class="col-md-4">
+                    <label for="dataInicio" class="form-label fw-semibold">Data de Início</label>
+                    <input type="date" id="dataInicio" name="dataInicio" class="form-control" />
+                    <span class="text-danger small" id="erroDataInicio"></span>
+                </div>
+
+                @* Data Fim  *@
+                <div class="col-md-4">
+                    <label for="dataFim" class="form-label fw-semibold">Data de Fim</label>
+                    <input type="date" id="dataFim" name="dataFim" class="form-control" />
+                    <span class="text-danger small" id="erroDataFim"></span>
+                </div>
+
+                @* Valor  *@
+                <div class="col-md-6">
+                    <label asp-for="Valor" class="form-label fw-semibold"></label>
+                    <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input asp-for="Valor" class="form-control" type="text"
+                               inputmode="numeric" placeholder="0,00"
+                               data-val="false" />
+                    </div>
+                    <span asp-validation-for="Valor" class="text-danger small"></span>
+                </div>
+
+                @* Observações  *@
+                <div class="col-md-6">
+                    <label asp-for="Observacoes" class="form-label fw-semibold"></label>
+                    <textarea asp-for="Observacoes" class="form-control" rows="3"
+                              placeholder="Observações aplicadas a todos os agendamentos..."></textarea>
+                    <span asp-validation-for="Observacoes" class="text-danger small"></span>
+                </div>
+
+            </div>
+
+            @* Prévia  *@
+            <div class="mt-4 p-3 bg-body-tertiary rounded border" id="previa" style="display:none;">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="cil-calendar-check text-success fs-5"></i>
+                    <strong>Prévia do agendamento</strong>
+                </div>
+                <p class="mb-0 small text-body-secondary" id="previaMensagem"></p>
+            </div>
+
+            <div class="mt-4 pt-3 border-top d-flex gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="cil-x me-1"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="cil-save me-1"></i> Criar Agendamentos
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        // ── Máscara de valor monetário ────────────────────────────────────────
+        const campValor = document.getElementById('Valor');
+
+        campValor.addEventListener('input', function () {
+            let apenasNumeros = this.value.replace(/\D/g, '');
+            if (!apenasNumeros) { this.value = ''; return; }
+            let numero = (parseInt(apenasNumeros) / 100).toFixed(2);
+            this.value = numero.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        });
+
+        document.querySelector('form').addEventListener('submit', function () {
+            $(campValor).rules && $(campValor).rules('remove');
+            let v = campValor.value.replace(/\./g, '').replace(',', '.');
+            campValor.value = isNaN(parseFloat(v)) ? '' : parseFloat(v).toFixed(2);
+        });
+
+        // ── Prévia dinâmica ───────────────────────────────────────────────────
+        const nomeDias = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+        function atualizarPrevia() {
+            const diasMarcados = [...document.querySelectorAll('input[name="diasSemana"]:checked')]
+                .map(el => parseInt(el.value));
+            const horario   = document.getElementById('horario').value;
+            const dataInicio = document.getElementById('dataInicio').value;
+            const dataFim    = document.getElementById('dataFim').value;
+
+            const previa = document.getElementById('previa');
+            const msg    = document.getElementById('previaMensagem');
+
+            if (!diasMarcados.length || !horario || !dataInicio || !dataFim) {
+                previa.style.display = 'none';
+                return;
+            }
+
+            const inicio = new Date(dataInicio + 'T00:00:00');
+            const fim    = new Date(dataFim + 'T00:00:00');
+
+            if (fim < inicio) {
+                previa.style.display = 'none';
+                return;
+            }
+
+            // Conta quantos agendamentos serão criados
+            let contador = 0;
+            let atual = new Date(inicio);
+            while (atual <= fim) {
+                if (diasMarcados.includes(atual.getDay())) contador++;
+                atual.setDate(atual.getDate() + 1);
+            }
+
+            const nomesDiasSelecionados = diasMarcados
+                .sort()
+                .map(d => nomeDias[d])
+                .join(', ');
+
+            const [h, m] = horario.split(':');
+            const horarioFormatado = `${h}:${m}`;
+
+            const inicioFormatado = inicio.toLocaleDateString('pt-BR');
+            const fimFormatado    = fim.toLocaleDateString('pt-BR');
+
+            msg.innerHTML = `
+                Serão criados <strong>${contador}</strong> agendamento(s) às
+                <strong>${horarioFormatado}</strong> nos dias
+                <strong>${nomesDiasSelecionados}</strong>,
+                de <strong>${inicioFormatado}</strong> até <strong>${fimFormatado}</strong>.
+            `;
+            previa.style.display = 'block';
+        }
+
+        // Escuta mudanças nos campos que afetam a prévia
+        document.querySelectorAll('input[name="diasSemana"]')
+            .forEach(el => el.addEventListener('change', atualizarPrevia));
+        document.getElementById('horario').addEventListener('input', atualizarPrevia);
+        document.getElementById('dataInicio').addEventListener('input', atualizarPrevia);
+        document.getElementById('dataFim').addEventListener('input', atualizarPrevia);
+    </script>
+}

@@ -1,0 +1,51 @@
+@model DigDog.Models.RoleFormViewModel
+@{
+    ViewData["Title"] = "Editar Perfil de Acesso";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5">
+            <i class="cil-pencil me-2"></i>Editar Perfil — @Model.Nome
+        </strong>
+    </div>
+    <div class="card-body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger border-0 py-2 small mb-3">
+                    @Html.ValidationSummary(false)
+                </div>
+            }
+
+            <partial name="_FormularioPermissoes" model="Model" />
+
+            <div class="mt-4 pt-3 border-top d-flex gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary text-white">
+                    <i class="cil-save me-1"></i>Salvar Alterações
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function alternarGrupo(btn) {
+            const slug = btn.dataset.slug;
+            const container = document.getElementById('grupo-' + slug);
+            if (!container) return;
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+            const todosMarcados = [...checkboxes].every(c => c.checked);
+            checkboxes.forEach(c => c.checked = !todosMarcados);
+        }
+
+        function marcarTodos(marcar) {
+            document.querySelectorAll('input[name="PermissoesSelecionadas"]')
+                .forEach(c => c.checked = marcar);
+        }
+    </script>
+}

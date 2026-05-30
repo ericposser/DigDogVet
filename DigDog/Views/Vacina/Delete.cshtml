@@ -1,0 +1,53 @@
+@model DigDog.Models.Vacina
+@{
+    ViewData["Title"] = "Excluir Vacina";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5 text-danger"><i class="cil-trash me-2"></i>Excluir Vacina</strong>
+    </div>
+
+    <div class="card-body">
+
+        <div class="alert alert-danger border-0 shadow-sm mb-4">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="cil-warning"></i>
+                <strong>Atenção! Esta ação não pode ser desfeita.</strong>
+            </div>
+            <small>
+                Ao excluir a vacina <strong>@Model.Nome</strong> do catálogo,
+                ela não poderá mais ser selecionada em novas vacinações.
+                O histórico de aplicações já realizadas será mantido.
+            </small>
+        </div>
+
+        <dl class="row mb-0">
+            <dt class="col-sm-3 fw-semibold">Nome</dt>
+            <dd class="col-sm-9">@Model.Nome</dd>
+
+            <dt class="col-sm-3 fw-semibold">Fabricante</dt>
+            <dd class="col-sm-9">@(Model.Fabricante ?? "—")</dd>
+
+            <dt class="col-sm-3 fw-semibold">Lote</dt>
+            <dd class="col-sm-9">@(Model.Lote ?? "—")</dd>
+
+            <dt class="col-sm-3 fw-semibold">Validade do Frasco</dt>
+            <dd class="col-sm-9">@Model.DataValidade.ToString("dd/MM/yyyy")</dd>
+        </dl>
+
+        <div class="mt-4 pt-3 border-top d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="cil-x me-1"></i> Cancelar
+            </a>
+            <form asp-action="Delete" asp-route-id="@ViewBag.IdCriptografado" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <button type="submit" class="btn btn-danger">
+                    <i class="cil-trash me-1"></i> Confirmar Exclusão
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>

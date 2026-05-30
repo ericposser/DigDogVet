@@ -1,0 +1,524 @@
+@* Views/Receituario/Criar.cshtml *@
+@model DigDog.Models.Receituario
+@{
+    ViewData["Title"] = "Emitir Receituário";
+    var logoSrc = ViewBag.LogoBase64 as string;
+}
+
+<style>
+    .secao-titulo {
+        background: #1a3c5e;
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 6px 12px;
+        border-radius: 4px 4px 0 0;
+    }
+    .secao-corpo {
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
+        padding: 14px 16px;
+        background: var(--cui-body-bg, #fff);
+    }
+    .medicamento-card {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 14px 14px 14px 38px;
+        position: relative;
+        background: var(--cui-body-bg, #fff);
+    }
+    .medicamento-card + .medicamento-card {
+        margin-top: 10px;
+    }
+    .med-numero {
+        position: absolute;
+        top: 14px;
+        left: 12px;
+        font-weight: 700;
+        font-size: 0.8rem;
+        color: #1a3c5e;
+    }
+    .btn-remover-med {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+    }
+    .preview-logo {
+        max-height: 52px;
+        object-fit: contain;
+        border-radius: 4px;
+    }
+    .badge-simples  { background-color: #1a3c5e; }
+    .badge-especial { background-color: #8B0000; }
+
+    /* Paleta de cores rápidas */
+    .paleta-cores {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    .paleta-cor {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: transform .15s, border-color .15s;
+    }
+    .paleta-cor:hover        { transform: scale(1.15); }
+    .paleta-cor.selecionada  { border-color: #000; transform: scale(1.15); }
+</style>
+
+<form asp-action="GerarPdf" method="post" id="formReceituario">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="IdConsulta" />
+    <input type="hidden" asp-for="IdEmpresa" />
+
+    <div class="card mb-4 shadow-sm">
+
+        <div class="card-header bg-body-tertiary">
+            <div class="d-flex align-items-center gap-2">
+                @if (!string.IsNullOrEmpty(logoSrc))
+                {
+                    <img src="@logoSrc" class="preview-logo" alt="Logo da clínica" />
+                }
+                <strong class="fs-5">
+                    <i class="cil-medical-cross me-2"></i>Emitir Receituário Veterinário
+                </strong>
+            </div>
+        </div>
+
+        <div class="card-body">
+
+            <div class="mb-4">
+                <div class="secao-titulo"><i class="cil-list me-1"></i>Tipo de Receituário</div>
+                <div class="secao-corpo">
+                    <div class="d-flex flex-wrap gap-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" asp-for="Tipo"
+                                   id="tipoSimples" value="Simples" />
+                            <label class="form-check-label d-flex align-items-center gap-2" for="tipoSimples">
+                                <span class="badge badge-simples text-white">SIMPLES</span>
+                                Antibióticos, anti-inflamatórios, antiparasitários…
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" asp-for="Tipo"
+                                   id="tipoEspecial" value="ControleEspecial" />
+                            <label class="form-check-label d-flex align-items-center gap-2" for="tipoEspecial">
+                                <span class="badge badge-especial text-white">CONTROLE ESPECIAL</span>
+                                Medicamentos sujeitos a controle (MAPA/CFMV)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+
+                <div class="col-lg-6">
+
+                    <div class="mb-3">
+                        <div class="secao-titulo"><i class="cil-building me-1"></i>Dados da Clínica / PetShop</div>
+                        <div class="secao-corpo">
+                            <div class="mb-2">
+                                <label asp-for="NomeClinica" class="form-label fw-semibold small mb-1"></label>
+                                <input asp-for="NomeClinica" class="form-control form-control-sm" />
+                                <span asp-validation-for="NomeClinica" class="text-danger small"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label asp-for="EnderecoClinica" class="form-label fw-semibold small mb-1"></label>
+                                <input asp-for="EnderecoClinica" class="form-control form-control-sm"
+                                       placeholder="Rua, número, bairro, cidade — UF" />
+                            </div>
+                            <div>
+                                <label asp-for="TelefoneClinica" class="form-label fw-semibold small mb-1"></label>
+                                <input asp-for="TelefoneClinica" id="TelefoneClinica"
+                                       class="form-control form-control-sm"
+                                       placeholder="(55) 99999-9999" maxlength="15" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="secao-titulo"><i class="cil-people me-1"></i>Dados do Tutor / Proprietário</div>
+                        <div class="secao-corpo">
+                            <div class="mb-2">
+                                <label asp-for="NomeTutor" class="form-label fw-semibold small mb-1"></label>
+                                <input asp-for="NomeTutor" class="form-control form-control-sm" />
+                                <span asp-validation-for="NomeTutor" class="text-danger small"></span>
+                            </div>
+                            <div class="mb-2">
+                                <label asp-for="CpfTutor" class="form-label fw-semibold small mb-1"></label>
+                                <input asp-for="CpfTutor" id="CpfTutor" class="form-control form-control-sm"
+                                       placeholder="000.000.000-00" maxlength="14" />
+                            </div>
+                            <div>
+                                <label asp-for="EnderecoTutor" class="form-label fw-semibold small mb-1"></label>
+                                <input asp-for="EnderecoTutor" class="form-control form-control-sm"
+                                       placeholder="Rua, número, bairro, cidade — UF" />
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="col-lg-6">
+
+                    <div class="mb-3">
+                        <div class="secao-titulo"><i class="cil-contact me-1"></i>Dados do Médico Veterinário</div>
+                        <div class="secao-corpo">
+                            <div class="mb-2">
+                                <label asp-for="NomeVeterinario" class="form-label fw-semibold small mb-1"></label>
+                                <input asp-for="NomeVeterinario" class="form-control form-control-sm"
+                                       placeholder="Nome completo do veterinário" />
+                                <span asp-validation-for="NomeVeterinario" class="text-danger small"></span>
+                            </div>
+                            <div>
+                                <label asp-for="Crmv" class="form-label fw-semibold small mb-1"></label>
+                                <input asp-for="Crmv" class="form-control form-control-sm"
+                                       placeholder="Ex: SP-12345" />
+                                <span asp-validation-for="Crmv" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="secao-titulo"><i class="cil-animal me-1"></i>Dados do Animal</div>
+                        <div class="secao-corpo">
+                            <div class="row g-2">
+                                <div class="col-sm-6">
+                                    <label asp-for="NomeAnimal" class="form-label fw-semibold small mb-1"></label>
+                                    <input asp-for="NomeAnimal" class="form-control form-control-sm" />
+                                    <span asp-validation-for="NomeAnimal" class="text-danger small"></span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label asp-for="EspecieAnimal" class="form-label fw-semibold small mb-1"></label>
+                                    <select asp-for="EspecieAnimal" class="form-select form-select-sm">
+                                        <option value="">— Selecione —</option>
+                                        <option value="Cachorro">Cachorro</option>
+                                        <option value="Gato">Gato</option>
+                                        <option value="Outro">Outro</option>
+                                    </select>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label asp-for="RacaAnimal" class="form-label fw-semibold small mb-1"></label>
+                                    <input asp-for="RacaAnimal" class="form-control form-control-sm" />
+                                </div>
+                                <div class="col-sm-6">
+                                    <label asp-for="SexoAnimal" class="form-label fw-semibold small mb-1"></label>
+                                    <select asp-for="SexoAnimal" class="form-select form-select-sm">
+                                        <option value="">— Selecione —</option>
+                                        <option value="Macho">Macho</option>
+                                        <option value="Fêmea">Fêmea</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="secao-titulo"><i class="cil-calendar me-1"></i>Data de Emissão</div>
+                        <div class="secao-corpo">
+                            <input asp-for="DataEmissao" class="form-control form-control-sm" type="date" />
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <div class="secao-titulo"><i class="cil-color-palette me-1"></i>Cor dos Cabeçalhos no PDF</div>
+                <div class="secao-corpo">
+                    <div class="d-flex align-items-center gap-3">
+                        <div>
+                            <label asp-for="CorCabecalho" class="form-label fw-semibold small mb-1">
+                                Cor personalizada
+                            </label>
+                            <input asp-for="CorCabecalho" id="inputCorCabecalho"
+                                   type="color" class="form-control form-control-color form-control-sm"
+                                   style="width:48px; height:34px; padding:2px 4px;"
+                                   oninput="sincronizarPaleta(this.value)" />
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="form-label fw-semibold small mb-1">Cores rápidas</div>
+                            <div class="paleta-cores" id="paletaCores">
+                                <div class="paleta-cor selecionada" style="background:#1a3c5e;" data-cor="#1a3c5e" title="Azul petróleo" onclick="selecionarCor('#1a3c5e', this)"></div>
+                                <div class="paleta-cor" style="background:#2471a3;" data-cor="#2471a3" title="Azul médio" onclick="selecionarCor('#2471a3', this)"></div>
+                                <div class="paleta-cor" style="background:#1a6e8e;" data-cor="#1a6e8e" title="Azul céu" onclick="selecionarCor('#1a6e8e', this)"></div>
+                                <div class="paleta-cor" style="background:#148f77;" data-cor="#148f77" title="Verde água" onclick="selecionarCor('#148f77', this)"></div>
+                                <div class="paleta-cor" style="background:#2c7a4b;" data-cor="#2c7a4b" title="Verde floresta" onclick="selecionarCor('#2c7a4b', this)"></div>
+                                <div class="paleta-cor" style="background:#7b2d8b;" data-cor="#7b2d8b" title="Roxo" onclick="selecionarCor('#7b2d8b', this)"></div>
+                                <div class="paleta-cor" style="background:#6c3483;" data-cor="#6c3483" title="Roxo escuro" onclick="selecionarCor('#6c3483', this)"></div>
+                                <div class="paleta-cor" style="background:#8B0000;" data-cor="#8B0000" title="Vinho" onclick="selecionarCor('#8B0000', this)"></div>
+                                <div class="paleta-cor" style="background:#c0392b;" data-cor="#c0392b" title="Vermelho" onclick="selecionarCor('#c0392b', this)"></div>
+                                <div class="paleta-cor" style="background:#d35400;" data-cor="#d35400" title="Laranja escuro" onclick="selecionarCor('#d35400', this)"></div>
+                                <div class="paleta-cor" style="background:#b7950b;" data-cor="#b7950b" title="Dourado" onclick="selecionarCor('#b7950b', this)"></div>
+                                <div class="paleta-cor" style="background:#7e5109;" data-cor="#7e5109" title="Marrom" onclick="selecionarCor('#7e5109', this)"></div>
+                                <div class="paleta-cor" style="background:#555555;" data-cor="#555555" title="Cinza médio" onclick="selecionarCor('#555555', this)"></div>
+                                <div class="paleta-cor" style="background:#333333;" data-cor="#333333" title="Cinza escuro" onclick="selecionarCor('#333333', this)"></div>
+                                <div class="paleta-cor" style="background:#1a1a2e;" data-cor="#1a1a2e" title="Azul noite" onclick="selecionarCor('#1a1a2e', this)"></div>
+                                <div class="paleta-cor" style="background:#2e4057;" data-cor="#2e4057" title="Azul ardósia" onclick="selecionarCor('#2e4057', this)"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <small class="text-body-secondary mt-2 d-block">
+                        Essa cor será aplicada nos cabeçalhos das seções e no título da clínica no PDF.
+                    </small>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <div class="secao-titulo"><i class="cil-eyedropper me-1"></i>Medicamentos Prescritos</div>
+                <div class="secao-corpo">
+                    <div id="listaMedicamentos">
+                        <div class="medicamento-card" id="med-0">
+                            <span class="med-numero">1.</span>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold small mb-1">
+                                        Nome do Medicamento <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" name="medicamentoNome"
+                                           class="form-control form-control-sm"
+                                           placeholder="Ex: Amoxicilina" required />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold small mb-1">Concentração</label>
+                                    <input type="text" name="medicamentoConcentracao"
+                                           class="form-control form-control-sm" placeholder="Ex: 500 mg" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold small mb-1">Forma Farmacêutica</label>
+                                    <input type="text" name="medicamentoForma"
+                                           class="form-control form-control-sm" placeholder="Ex: Comprimido" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold small mb-1">Via de Administração</label>
+                                    <select name="medicamentoVia" class="form-select form-select-sm">
+                                        <option value="">— Selecione —</option>
+                                        <option value="Oral">Oral</option>
+                                        <option value="Subcutânea">Subcutânea</option>
+                                        <option value="Intramuscular">Intramuscular</option>
+                                        <option value="Intravenosa">Intravenosa</option>
+                                        <option value="Tópica">Tópica</option>
+                                        <option value="Oftálmica">Oftálmica</option>
+                                        <option value="Auricular">Auricular</option>
+                                        <option value="Retal">Retal</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold small mb-1">Quantidade</label>
+                                    <input type="text" name="medicamentoQuantidade"
+                                           class="form-control form-control-sm"
+                                           placeholder="Ex: 1 caixa / 10 comprimidos" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold small mb-1">
+                                        Posologia
+                                        <small class="text-body-secondary fw-normal">
+                                            (dose, frequência e duração do tratamento)
+                                        </small>
+                                    </label>
+                                    <input type="text" name="medicamentoPosologia"
+                                           class="form-control form-control-sm"
+                                           placeholder="Ex: 1 comprimido a cada 12h por 7 dias" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-outline-primary btn-sm mt-3"
+                            onclick="adicionarMedicamento()">
+                        <i class="cil-plus me-1"></i> Adicionar outro medicamento
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <div class="secao-titulo"><i class="cil-notes me-1"></i>Observações / Instruções ao Tutor</div>
+                <div class="secao-corpo">
+                    <textarea asp-for="Observacoes" class="form-control form-control-sm" rows="3"
+                              placeholder="Ex: Manter o animal hidratado. Retornar em 10 dias para reavaliação."></textarea>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-top d-flex gap-2 align-items-center">
+                <a href="javascript:history.back()" class="btn btn-outline-secondary">
+                    <i class="cil-x me-1"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary ms-auto" id="btnGerarPdf">
+                    <i class="cil-cloud-download me-1"></i> Gerar PDF e Baixar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        // ── Paleta de cores ───────────────────────────────────────────────
+        function selecionarCor(hex, elemento) {
+            document.getElementById('inputCorCabecalho').value = hex;
+            document.querySelectorAll('.paleta-cor').forEach(el => el.classList.remove('selecionada'));
+            if (elemento) elemento.classList.add('selecionada');
+        }
+
+        function sincronizarPaleta(hex) {
+            // Remove seleção da paleta quando o usuário usa o color picker livremente
+            document.querySelectorAll('.paleta-cor').forEach(el => {
+                el.classList.toggle('selecionada', el.dataset.cor === hex);
+            });
+        }
+
+        // ── Medicamentos dinâmicos ────────────────────────────────────────
+        let totalMedicamentos = 1;
+
+        function adicionarMedicamento() {
+            const idx = totalMedicamentos;
+            const num = idx + 1;
+            const html = `
+                <div class="medicamento-card" id="med-${idx}">
+                    <span class="med-numero">${num}.</span>
+                    <button type="button" class="btn btn-outline-danger btn-sm btn-remover-med"
+                            onclick="removerMedicamento(this)">
+                        <i class="cil-trash"></i>
+                    </button>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small mb-1">
+                                Nome do Medicamento <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" name="medicamentoNome"
+                                   class="form-control form-control-sm"
+                                   placeholder="Ex: Amoxicilina" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small mb-1">Concentração</label>
+                            <input type="text" name="medicamentoConcentracao"
+                                   class="form-control form-control-sm" placeholder="Ex: 500 mg" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small mb-1">Forma Farmacêutica</label>
+                            <input type="text" name="medicamentoForma"
+                                   class="form-control form-control-sm" placeholder="Ex: Comprimido" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small mb-1">Via de Administração</label>
+                            <select name="medicamentoVia" class="form-select form-select-sm">
+                                <option value="">— Selecione —</option>
+                                <option value="Oral">Oral</option>
+                                <option value="Subcutânea">Subcutânea</option>
+                                <option value="Intramuscular">Intramuscular</option>
+                                <option value="Intravenosa">Intravenosa</option>
+                                <option value="Tópica">Tópica</option>
+                                <option value="Oftálmica">Oftálmica</option>
+                                <option value="Auricular">Auricular</option>
+                                <option value="Retal">Retal</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small mb-1">Quantidade</label>
+                            <input type="text" name="medicamentoQuantidade"
+                                   class="form-control form-control-sm"
+                                   placeholder="Ex: 1 caixa / 10 comprimidos" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold small mb-1">
+                                Posologia
+                                <small class="text-body-secondary fw-normal">
+                                    (dose, frequência e duração do tratamento)
+                                </small>
+                            </label>
+                            <input type="text" name="medicamentoPosologia"
+                                   class="form-control form-control-sm"
+                                   placeholder="Ex: 1 comprimido a cada 12h por 7 dias" />
+                        </div>
+                    </div>
+                </div>`;
+            document.getElementById('listaMedicamentos').insertAdjacentHTML('beforeend', html);
+            totalMedicamentos++;
+            atualizarBotaoRemover();
+        }
+
+        function removerMedicamento(botao) {
+            botao.closest('.medicamento-card').remove();
+            renumerarMedicamentos();
+            atualizarBotaoRemover();
+        }
+
+        function renumerarMedicamentos() {
+            const cards = document.querySelectorAll('.medicamento-card');
+            totalMedicamentos = cards.length;
+            cards.forEach((card, i) => {
+                card.id = `med-${i}`;
+                const num = card.querySelector('.med-numero');
+                if (num) num.textContent = `${i + 1}.`;
+            });
+        }
+
+        function atualizarBotaoRemover() {
+            const cards = document.querySelectorAll('.medicamento-card');
+            const unico = cards.length === 1;
+            cards.forEach(card => {
+                const btn = card.querySelector('.btn-remover-med');
+                if (btn) btn.style.display = unico ? 'none' : '';
+            });
+        }
+
+        // ── Loading: esconde overlay quando o PDF chega ───────────────────
+        document.getElementById('formReceituario').addEventListener('submit', function () {
+            // O site.js já exibe o overlay via evento submit.
+            // Usamos um iframe oculto para detectar quando o download terminou
+            // (o browser não dispara evento no download direto de file response).
+            // Solução: polling — esconde o overlay após intervalo fixo (3s),
+            // tempo suficiente para o servidor gerar e o browser iniciar o download.
+            setTimeout(function () {
+                const overlay = document.getElementById('overlayCarregando');
+                if (overlay) overlay.classList.remove('ativo');
+            }, 3000);
+        });
+
+        // ── Inicialização ─────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            atualizarBotaoRemover();
+
+            // Máscara de telefone da clínica: (55) 99999-9999
+            const tel = document.getElementById('TelefoneClinica');
+            if (tel) {
+                tel.addEventListener('input', () => {
+                    let v = tel.value.replace(/\D/g, '').slice(0, 11);
+                    if (v.length > 6)
+                        v = v.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+                    else if (v.length > 2)
+                        v = v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+                    else if (v.length > 0)
+                        v = v.replace(/^(\d{0,2})/, '($1');
+                    tel.value = v;
+                });
+            }
+
+            // Máscara de CPF
+            const cpf = document.getElementById('CpfTutor');
+            if (cpf) {
+                cpf.addEventListener('input', () => {
+                    let v = cpf.value.replace(/\D/g, '').slice(0, 11);
+                    if (v.length > 9)
+                        v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+                    else if (v.length > 6)
+                        v = v.replace(/^(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+                    else if (v.length > 3)
+                        v = v.replace(/^(\d{3})(\d{0,3})/, '$1.$2');
+                    cpf.value = v;
+                });
+            }
+        });
+    </script>
+}

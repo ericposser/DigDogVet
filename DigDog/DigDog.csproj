@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.27" />
+        <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.27" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.23">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.26" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.26" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.23">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.23" />
+        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
+        <PackageReference Include="QuestPDF" Version="2026.5.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Views\BanhoTosa\Create.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\BanhoTosa\Delete.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\BanhoTosa\Details.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\BanhoTosa\Edit.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\BanhoTosa\Index.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Cliente\Create.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Cliente\Delete.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Cliente\Edit.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Cliente\Index.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Consulta\Create.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Consulta\Delete.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Consulta\Details.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Consulta\Edit.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Consulta\Index.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Pet\Create.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Pet\Delete.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Pet\Details.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Pet\Edit.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Pet\Index.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Produto\Create.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Produto\Delete.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Produto\Details.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Produto\Edit.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Produto\Index.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Vacina\Create.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Vacina\Delete.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Vacina\Details.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Vacina\Edit.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Vacina\Index.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Usuario\Create.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Usuario\Delete.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Usuario\Details.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Usuario\Edit.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\Usuario\Index.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\AgendamentoPublicoHub\Confirmacao.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\AgendamentoPublicoHub\Index.cshtml" />
+      <_ContentIncludedByDefault Remove="Views\AgendamentoPublicoHub\LinkInvalido.cshtml" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <UpToDateCheckInput Remove="Views\Vacina\Create.cshtml" />
+      <UpToDateCheckInput Remove="Views\Vacina\Delete.cshtml" />
+      <UpToDateCheckInput Remove="Views\Vacina\Details.cshtml" />
+      <UpToDateCheckInput Remove="Views\Vacina\Edit.cshtml" />
+      <UpToDateCheckInput Remove="Views\Vacina\Index.cshtml" />
+    </ItemGroup>
+
+</Project>

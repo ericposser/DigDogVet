@@ -1,0 +1,85 @@
+﻿@page
+@model RegisterModel
+@{
+    Layout = "/Areas/Identity/Pages/_LayoutAutenticacao.cshtml";
+    ViewData["Title"] = "Cadastro";
+}
+
+<div class="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
+    <div class="container" style="max-width: 32rem">
+        <div class="d-flex flex-column gap-4 text-center">
+
+            <!-- Logo / Título -->
+            <div>
+                <h2 class="fw-bold fs-3"><i class="cil-paw me-2"></i> DigDogVet</h2>
+                <p class="text-body-secondary small">Sistema de PetShop e Clínica Veterinária</p>
+            </div>
+
+            <!-- Card de Cadastro -->
+            <div class="card p-4">
+                <div class="card-body d-flex flex-column gap-4">
+                    <h2 class="h5 text-center">Criar nova conta</h2>
+
+                    <form method="post" class="row gap-3 text-start" autocomplete="off">
+                        @Html.AntiForgeryToken()
+
+                        <!-- Erros gerais -->
+                        @if (!ViewData.ModelState.IsValid)
+                        {
+                            <div class="alert alert-danger border-0 py-2 small">
+                                @Html.ValidationSummary(false)
+                            </div>
+                        }
+
+                        <!-- E-mail -->
+                        <div>
+                            <label class="form-label" asp-for="Input.Email">E-mail</label>
+                            <input class="form-control" asp-for="Input.Email"
+                                   type="email" placeholder="seu@email.com" autocomplete="off" />
+                            <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                        </div>
+
+                        <!-- CPF -->
+                        <div>
+                            <label class="form-label" asp-for="Input.Cpf">CPF</label>
+                            <input class="form-control" asp-for="Input.Cpf"
+                                   id="campoCpf" type="text" placeholder="000.000.000-00"
+                                   maxlength="14" autocomplete="off" inputmode="numeric" />
+                            <span asp-validation-for="Input.Cpf" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Senha -->
+                        <div>
+                            <label class="form-label" asp-for="Input.Password">Senha</label>
+                            <input class="form-control" asp-for="Input.Password"
+                                   type="password" placeholder="Mínimo 6 caracteres" autocomplete="off" />
+                            <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Confirmar Senha -->
+                        <div>
+                            <label class="form-label" asp-for="Input.ConfirmPassword">Confirmar Senha</label>
+                            <input class="form-control" asp-for="Input.ConfirmPassword"
+                                   type="password" placeholder="Repita sua senha" autocomplete="off" />
+                            <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Botão -->
+                        <div>
+                            <button class="btn btn-primary w-100" type="submit">
+                                <i class="cil-user-follow me-1"></i> Criar conta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Link para Login -->
+            <div class="text-body-secondary">
+                Já tem uma conta?
+                <a asp-page="./Login">Entrar</a>
+            </div>
+
+        </div>
+    </div>
+</div>

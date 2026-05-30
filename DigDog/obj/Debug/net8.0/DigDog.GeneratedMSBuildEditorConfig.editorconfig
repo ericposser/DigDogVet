@@ -1,0 +1,303 @@
+is_global = true
+build_property.TargetFramework = net8.0
+build_property.TargetFramework = net8.0
+build_property.TargetPlatformMinVersion = 
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = DigDog
+build_property.RootNamespace = DigDog
+build_property.ProjectDir = /Users/ericposser/Desktop/DigDog/DigDog/
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 8.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = /Users/ericposser/Desktop/DigDog/DigDog
+build_property._RazorSourceGeneratorDebug = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Areas/Identity/Pages/Account/Login.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvSWRlbnRpdHkvUGFnZXMvQWNjb3VudC9Mb2dpbi5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Areas/Identity/Pages/Account/Logout.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvSWRlbnRpdHkvUGFnZXMvQWNjb3VudC9Mb2dvdXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Areas/Identity/Pages/Account/Register.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvSWRlbnRpdHkvUGFnZXMvQWNjb3VudC9SZWdpc3Rlci5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Areas/Identity/Pages/Account/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvSWRlbnRpdHkvUGFnZXMvQWNjb3VudC9fVmlld0ltcG9ydHMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Areas/Identity/Pages/_LayoutAutenticacao.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvSWRlbnRpdHkvUGFnZXMvX0xheW91dEF1dGVudGljYWNhby5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Areas/Identity/Pages/_ValidationScriptsPartial.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvSWRlbnRpdHkvUGFnZXMvX1ZhbGlkYXRpb25TY3JpcHRzUGFydGlhbC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Areas/Identity/Pages/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvSWRlbnRpdHkvUGFnZXMvX1ZpZXdJbXBvcnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Areas/Identity/Pages/_ViewStart.cshtml]
+build_metadata.AdditionalFiles.TargetPath = QXJlYXMvSWRlbnRpdHkvUGFnZXMvX1ZpZXdTdGFydC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Assinatura/Inativa.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQXNzaW5hdHVyYS9JbmF0aXZhLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Assinatura/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQXNzaW5hdHVyYS9JbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/BanhoTosa/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQmFuaG9Ub3NhL0NyZWF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/BanhoTosa/CreateLote.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQmFuaG9Ub3NhL0NyZWF0ZUxvdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/BanhoTosa/Delete.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQmFuaG9Ub3NhL0RlbGV0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/BanhoTosa/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQmFuaG9Ub3NhL0VkaXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/BanhoTosa/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQmFuaG9Ub3NhL0luZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Carteira/LinkInvalido.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQ2FydGVpcmEvTGlua0ludmFsaWRvLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Carteira/Publico.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQ2FydGVpcmEvUHVibGljby5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Cliente/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQ2xpZW50ZS9DcmVhdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Cliente/Delete.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQ2xpZW50ZS9EZWxldGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Cliente/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQ2xpZW50ZS9FZGl0LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Cliente/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQ2xpZW50ZS9JbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Configuracao/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQ29uZmlndXJhY2FvL0luZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Consulta/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQ29uc3VsdGEvQ3JlYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Consulta/Delete.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQ29uc3VsdGEvRGVsZXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Consulta/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQ29uc3VsdGEvRWRpdC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Consulta/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvQ29uc3VsdGEvSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Home/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvSG9tZS9JbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Log/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvTG9nL0luZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Pet/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUGV0L0NyZWF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Pet/Delete.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUGV0L0RlbGV0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Pet/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUGV0L0VkaXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Pet/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUGV0L0luZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Produto/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUHJvZHV0by9DcmVhdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Produto/Delete.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUHJvZHV0by9EZWxldGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Produto/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUHJvZHV0by9FZGl0LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Produto/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUHJvZHV0by9JbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Receituario/Criar.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUmVjZWl0dWFyaW8vQ3JpYXIuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Role/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUm9sZS9DcmVhdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Role/Delete.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUm9sZS9EZWxldGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Role/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUm9sZS9FZGl0LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Role/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUm9sZS9JbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Role/_FormularioPermissoes.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvUm9sZS9fRm9ybXVsYXJpb1Blcm1pc3NvZXMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Shared/AcessoNegado.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU2hhcmVkL0FjZXNzb05lZ2Fkby5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Shared/Error.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU2hhcmVkL0Vycm9yLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Shared/_BotaoLembrete.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU2hhcmVkL19Cb3Rhb0xlbWJyZXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Shared/_LoginPartial.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU2hhcmVkL19Mb2dpblBhcnRpYWwuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Shared/_ValidationScriptsPartial.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU2hhcmVkL19WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/StatusDia/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU3RhdHVzRGlhL0luZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/StatusDia/LinkInvalido.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU3RhdHVzRGlhL0xpbmtJbnZhbGlkby5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/StatusDia/Publico.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU3RhdHVzRGlhL1B1YmxpY28uY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Ticket/Enviar.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVGlja2V0L0Vudmlhci5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Usuario/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVXN1YXJpby9DcmVhdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Usuario/Delete.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVXN1YXJpby9EZWxldGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Usuario/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVXN1YXJpby9FZGl0LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Usuario/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVXN1YXJpby9JbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Vacina/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVmFjaW5hL0NyZWF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Vacina/Delete.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVmFjaW5hL0RlbGV0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Vacina/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVmFjaW5hL0VkaXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Vacina/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVmFjaW5hL0luZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Vacinacao/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVmFjaW5hY2FvL0NyZWF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Vacinacao/Delete.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVmFjaW5hY2FvL0RlbGV0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Vacinacao/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVmFjaW5hY2FvL0VkaXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Vacinacao/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVmFjaW5hY2FvL0luZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Venda/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVmVuZGEvQ3JlYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Venda/Delete.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVmVuZGEvRGVsZXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Venda/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVmVuZGEvSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvX1ZpZXdJbXBvcnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/_ViewStart.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvX1ZpZXdTdGFydC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/ericposser/Desktop/DigDog/DigDog/Views/Shared/_Layout.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU2hhcmVkL19MYXlvdXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = b-bqdefuw6hh

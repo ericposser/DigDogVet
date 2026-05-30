@@ -1,0 +1,442 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using DigDog.Data
+@using DigDog.Models
+@using DigDog.Services
+@inject UserManager<IdentityUser> UserManager
+@inject Contexto DbContext
+@inject PermissaoService PermissaoService
+
+@{
+    var nomeEstabelecimento = "DigDogVet";
+    byte[]? fotoBytes = null;
+    string? fotoMime  = "";
+    var ehAdmin = false;
+    var permissoesUsuario = new HashSet<Permissao>();
+
+    if (User.Identity is { IsAuthenticated: true })
+    {
+        var userId = UserManager.GetUserId(User);
+
+        // Busca a empresa do usuário logado via EmpresaUsuario
+        var vinculo = userId != null
+            ? DbContext.EmpresaUsuario.FirstOrDefault(eu => eu.IdUsuario == userId)
+            : null;
+
+        if (vinculo != null)
+        {
+            // Busca a configuração pela empresa
+            var config = DbContext.Configuracao
+                .FirstOrDefault(c => c.IdEmpresa == vinculo.IdEmpresa);
+
+            if (config != null)
+            {
+                if (!string.IsNullOrWhiteSpace(config.NomeEstabelecimento))
+                    nomeEstabelecimento = config.NomeEstabelecimento;
+
+                fotoBytes = config.FotoDados;
+                fotoMime  = config.FotoMimeType;
+            }
+            else
+            {
+                // Fallback: usa o nome direto da Empresa se ainda não tem Configuracao
+                var empresa = DbContext.Empresa
+                    .FirstOrDefault(e => e.Id == vinculo.IdEmpresa);
+
+                if (!string.IsNullOrWhiteSpace(empresa?.NomeEstabelecimento))
+                    nomeEstabelecimento = empresa.NomeEstabelecimento;
+            }
+        }
+
+        ehAdmin = User.IsInRole("Admin");
+
+        // Carrega permissões apenas para não-admins
+        if (!ehAdmin && userId != null)
+        {
+            foreach (Permissao p in Enum.GetValues(typeof(Permissao)))
+            {
+                var tem = await PermissaoService.UsuarioTemPermissaoAsync(userId, p);
+                if (tem) permissoesUsuario.Add(p);
+            }
+        }
+    }
+
+    bool TemPermissao(Permissao p) => ehAdmin || permissoesUsuario.Contains(p);
+}
+<!DOCTYPE html>
+<html lang="pt-BR" data-coreui-theme="auto">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"/>
+    <title>@ViewData["Title"] - @nomeEstabelecimento</title>
+
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    <link rel="stylesheet" href="~/DigDog.styles.css" asp-append-version="true"/>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplebar@latest/dist/simplebar.css"/>
+
+    <link href="https://cdn.jsdelivr.net/npm/@@coreui/coreui@5.6.1/dist/css/coreui.min.css" rel="stylesheet" integrity="sha384-q/at3GHMpO8VjBXzZ+ymx89MhqKtK9AcxYuECgmRq1b2a3797G4sfEM/ylqgywpd" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@coreui/icons@3.0.1/css/all.min.css">
+
+    <script>
+        (function () {
+            const temaSalvo = localStorage.getItem('coreui-theme') || 'auto';
+            if (temaSalvo === 'auto') {
+                const prefereDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-coreui-theme', prefereDark ? 'dark' : 'light');
+            } else {
+                document.documentElement.setAttribute('data-coreui-theme', temaSalvo);
+            }
+        })();
+    </script>
+</head>
+
+<!-- Toast Container -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
+    @if (TempData["ToastMensagem"] != null)
+    {
+        <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" id="toastPrincipal">
+            <div class="toast-header">
+                <div class="rounded me-2" style="width:16px; height:16px; background-color: var(--cui-@(TempData["ToastTipo"]));"></div>
+                <strong class="me-auto">@nomeEstabelecimento</strong>
+                <button type="button" class="btn-close" data-coreui-dismiss="toast" aria-label="Fechar"></button>
+            </div>
+            <div class="toast-body fw-semibold">
+                @TempData["ToastMensagem"]
+            </div>
+        </div>
+    }
+</div>
+
+@if (TempData["ToastMensagem"] != null)
+{
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const toastEl = document.getElementById('toastPrincipal');
+            if (toastEl) {
+                const toast = new coreui.Toast(toastEl, { delay: 4000, animation: true });
+                toast.show();
+            }
+        });
+    </script>
+}
+
+<body>
+
+<!-- Overlay de Loading Global -->
+<div id="overlayCarregando">
+    <div class="spinner-carregando">
+        <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Carregando...</span>
+        </div>
+        <p class="texto-carregando mt-3 mb-0 fw-semibold text-white">Carregando...</p>
+    </div>
+</div>
+
+<div class="sidebar sidebar-fixed border-end" id="sidebar">
+    <div class="sidebar-header border-bottom">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-full fw-bold fs-5">
+                <i class="cil-paw me-2"></i> @nomeEstabelecimento
+            </div>
+            <div class="sidebar-brand-narrow fw-bold fs-4">
+                <i class="cil-paw"></i>
+            </div>
+        </div>
+        <button class="btn-close d-lg-none" type="button" aria-label="Close" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()"></button>
+    </div>
+
+    <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
+
+       
+            <li class="nav-item">
+                <a class="nav-link" asp-controller="Home" asp-action="Index">
+                    <i class="nav-icon cil-speedometer"></i> Painel
+                </a>
+            </li>
+        
+
+        @* ── Gestão Clínica ─────────────────────────────────────────────── *@
+        @{
+            var temGestaoClinica = TemPermissao(Permissao.TutoresVisualizar)
+                                       || TemPermissao(Permissao.PetsVisualizar)
+                                       || TemPermissao(Permissao.ConsultasVisualizar);
+        }
+        @if (temGestaoClinica)
+        {
+            <li class="nav-title">Gestão Clínica</li>
+
+            @if (TemPermissao(Permissao.TutoresVisualizar))
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Cliente" asp-action="Index">
+                        <i class="nav-icon cil-people"></i> Tutores
+                    </a>
+                </li>
+            }
+
+            @if (TemPermissao(Permissao.PetsVisualizar))
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Pet" asp-action="Index">
+                        <i class="nav-icon cil-animal"></i> Pets
+                    </a>
+                </li>
+            }
+
+            @if (TemPermissao(Permissao.ConsultasVisualizar))
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Consulta" asp-action="Index">
+                        <i class="nav-icon cil-medical-cross"></i> Consultas
+                    </a>
+                </li>
+            }
+        }
+
+        @* ── Vacinação ──────────────────────────────────────────────────── *@
+        @{
+            var temVacinacao = TemPermissao(Permissao.VacinasVisualizar)
+                               || TemPermissao(Permissao.VacinacaoVisualizar);
+        }
+        @if (temVacinacao)
+        {
+            <li class="nav-title">Vacinação</li>
+
+            @if (TemPermissao(Permissao.VacinasVisualizar))
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Vacina" asp-action="Index">
+                        <i class="nav-icon cil-eyedropper"></i> Vacinas
+                    </a>
+                </li>
+            }
+
+            @if (TemPermissao(Permissao.VacinacaoVisualizar))
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Vacinacao" asp-action="Index">
+                        <i class="nav-icon cil-heart"></i> Carteiras de Vacinações
+                    </a>
+                </li>
+            }
+        }
+
+        @* ── PetShop ────────────────────────────────────────────────────── *@
+        @{
+            var temPetShop = TemPermissao(Permissao.StatusDiaVisualizar)
+                             || TemPermissao(Permissao.BanhoTosaVisualizar)
+                             || TemPermissao(Permissao.ProdutosVisualizar)
+                             || TemPermissao(Permissao.VendasVisualizar);
+        }
+        @if (temPetShop)
+        {
+            <li class="nav-title">PetShop</li>
+
+            @if (TemPermissao(Permissao.BanhoTosaVisualizar))
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="BanhoTosa" asp-action="Index">
+                        <i class="nav-icon cil-cut"></i> Banhos e Tosas
+                    </a>
+                </li>
+            }
+            
+            @if (TemPermissao(Permissao.StatusDiaVisualizar))
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="StatusDia" asp-action="Index">
+                        <i class="nav-icon cil-paper-plane"></i> Status do Dia
+                    </a>
+                </li>
+            }
+
+            @if (TemPermissao(Permissao.ProdutosVisualizar))
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Produto" asp-action="Index">
+                        <i class="nav-icon cil-basket"></i> Produtos
+                    </a>
+                </li>
+            }
+        }
+
+        @* ── Administração (só Admin) ────────────────────────────────────── *@
+        @if (ehAdmin)
+        {
+            <li class="nav-title">Administração</li>
+            <li class="nav-item">
+                <a class="nav-link" asp-controller="Role" asp-action="Index">
+                    <i class="nav-icon cil-shield-alt"></i> Perfis de Acesso
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-controller="Usuario" asp-action="Index">
+                    <i class="nav-icon cil-contact"></i> Funcionários
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-controller="Log" asp-action="Index">
+                    <i class="nav-icon cil-notes"></i> Log de Atividades
+                </a>
+            </li>
+        }
+
+    </ul>
+
+    <div class="sidebar-footer border-top d-none d-md-flex">
+        <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
+    </div>
+</div>
+
+<div class="wrapper d-flex flex-column min-vh-100">
+
+    <header class="header header-sticky mb-4">
+        <div class="container-fluid px-4">
+            <button class="header-toggler px-md-0 me-md-3" type="button" onclick="coreui.Sidebar.getInstance(document.querySelector('#sidebar')).toggle()">
+                <i class="icon icon-lg cil-menu"></i>
+            </button>
+
+            <ul class="header-nav ms-auto">
+                <li class="nav-item dropdown">
+                    <button class="btn btn-link nav-link py-2 px-2 d-flex align-items-center" type="button" aria-expanded="false" data-coreui-toggle="dropdown">
+                        <i class="icon icon-lg cil-contrast" id="header-theme-icon"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" style="--cui-dropdown-min-width: 8rem">
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center theme-switcher" type="button" data-theme-value="light">
+                                <i class="icon me-3 cil-sun"></i> Claro
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center theme-switcher" type="button" data-theme-value="dark">
+                                <i class="icon me-3 cil-moon"></i> Escuro
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center theme-switcher" type="button" data-theme-value="auto">
+                                <i class="icon me-3 cil-contrast"></i> Auto
+                            </button>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item py-1">
+                    <div class="vr h-100 mx-2 text-body text-opacity-75"></div>
+                </li>
+
+                
+                <li class="nav-item dropdown">
+                    <a class="nav-link py-0 pe-0" data-coreui-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                        @if (fotoBytes != null)
+                        {
+                            var base64 = Convert.ToBase64String(fotoBytes);
+                            var imgSrc = $"data:{fotoMime};base64,{base64}";
+                            <img src="@imgSrc" class="avatar avatar-md rounded-circle" style="object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <div class="avatar avatar-md bg-primary text-white rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="cil-user"></i>
+                            </div>
+                        }
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end pt-0">
+                        <div class="dropdown-header bg-body-tertiary text-body-secondary fw-semibold rounded-top mb-2">Conta</div>
+                        @if (ehAdmin)
+                        {
+                            <a class="dropdown-item" asp-controller="Configuracao" asp-action="Index">
+                                <i class="icon me-2 cil-settings"></i> Configurações
+                            </a>
+                        }
+                        @if (ehAdmin)
+                        {
+                            <a class="dropdown-item" asp-controller="Assinatura" asp-action="Index">
+                                <i class="icon me-2 cil-credit-card"></i> Assinatura
+                            </a>
+                        }
+                        <div class="dropdown-divider"></div>
+                        <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home")">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="dropdown-item text-danger w-100 text-start">
+                                <i class="icon me-2 cil-account-logout"></i> Sair
+                            </button>
+                        </form>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </header>
+
+    <div class="body flex-grow-1">
+        <div class="container-lg px-4">
+            <main role="main" class="pb-3">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+</div>
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/simplebar@latest/dist/simplebar.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@@coreui/coreui@5.6.1/dist/js/coreui.bundle.min.js" integrity="sha384-bfWw6UWgmz1820GDTev34DLTN/eDwwySOsuWriOxV32ZBfwFgiPaDzvOP+vG0Yur" crossorigin="anonymous"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const htmlEl = document.documentElement;
+        const headerIcon = document.getElementById('header-theme-icon');
+        const switchers = document.querySelectorAll('.theme-switcher');
+
+        const getPreferredTheme = () => {
+            const storedTheme = localStorage.getItem('coreui-theme');
+            if (storedTheme) {
+                return storedTheme;
+            }
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        const setTheme = function (theme) {
+            if (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                htmlEl.setAttribute('data-coreui-theme', 'dark');
+            } else {
+                htmlEl.setAttribute('data-coreui-theme', theme);
+            }
+        }
+
+        const updateActiveIcon = (theme) => {
+            headerIcon.className = 'icon icon-lg'; // Reset classes
+            if (theme === 'dark') {
+                headerIcon.classList.add('cil-moon');
+            } else if (theme === 'light') {
+                headerIcon.classList.add('cil-sun');
+            } else {
+                headerIcon.classList.add('cil-contrast');
+            }
+
+            switchers.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-theme-value') === theme) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        const activeTheme = localStorage.getItem('coreui-theme') || 'auto';
+        setTheme(activeTheme);
+        updateActiveIcon(activeTheme);
+
+        switchers.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const theme = btn.getAttribute('data-theme-value');
+                localStorage.setItem('coreui-theme', theme);
+                setTheme(theme);
+                updateActiveIcon(theme);
+            });
+        });
+    });
+</script>
+
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,80 @@
+@model DigDog.Models.UsuarioFormViewModel
+@{
+    ViewData["Title"] = "Novo Funcionário";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5">
+            <i class="cil-user-follow me-2"></i>Novo Funcionário
+        </strong>
+    </div>
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger border-0 py-2 small mb-3">
+                    @Html.ValidationSummary(false)
+                </div>
+            }
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Nome" class="form-label fw-semibold"></label>
+                    <input asp-for="Nome" class="form-control" placeholder="Nome completo" />
+                    <span asp-validation-for="Nome" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Email" class="form-label fw-semibold"></label>
+                    <input asp-for="Email" class="form-control"
+                           placeholder="funcionario@email.com"/>
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Telefone" class="form-label fw-semibold"></label>
+                    <input asp-for="Telefone" class="form-control"
+                           id="telefone"
+                           placeholder="(55) 99999-9999"
+                           maxlength="16"/>
+                    <span asp-validation-for="Telefone" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="IdRole" class="form-label fw-semibold"></label>
+                    <select asp-for="IdRole" asp-items="ViewBag.IdRole"
+                            class="form-select">
+                        <option value="">— Selecione um perfil —</option>
+                    </select>
+                    <span asp-validation-for="IdRole" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="SenhaTemporaria" class="form-label fw-semibold"></label>
+                    <input asp-for="SenhaTemporaria" class="form-control"
+                           type="password" placeholder="Mínimo 6 caracteres"/>
+                    <span asp-validation-for="SenhaTemporaria" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ConfirmarSenha" class="form-label fw-semibold"></label>
+                    <input asp-for="ConfirmarSenha" class="form-control"
+                           type="password" placeholder="Repita a senha"/>
+                    <span asp-validation-for="ConfirmarSenha" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-top d-flex gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="cil-save me-1"></i>Cadastrar Funcionário
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    <script>
+        $('#telefone').mask('(00) 00000-0000');
+    </script>
+}

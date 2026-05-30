@@ -1,0 +1,200 @@
+﻿@model Microsoft.AspNetCore.Mvc.ProblemDetails
+@{
+    ViewData["Title"] = "Ops! Algo deu errado";
+    var idRequisicao  = ViewData["RequestId"]?.ToString() ?? "—";
+    var mensagemErro  = ViewData["MensagemErro"]?.ToString() ?? "Ocorreu um erro inesperado.";
+    var detalheErro   = ViewData["DetalheErro"]?.ToString() ?? "";
+    var tipoErro      = ViewData["TipoErro"]?.ToString() ?? "";
+    var stackTrace    = ViewData["StackTrace"]?.ToString() ?? "";
+}
+
+<div class="d-flex flex-column align-items-center justify-content-center"
+     style="min-height: calc(100vh - 130px);">
+
+    @* Ícone *@
+    <div class="mb-4 text-danger" style="font-size: 5rem; line-height: 1;">
+        <i class="cil-bug"></i>
+    </div>
+
+    @* Título *@
+    <h2 class="fw-bold text-body mb-2 text-center">Desculpe pelo inconveniente!</h2>
+    <p class="text-body-secondary text-center mb-4" style="max-width: 500px;">
+        Ocorreu um erro inesperado no sistema. Entre em contato com o suporte e envie os detalhes do erro
+        clicando no botão abaixo, isso ajudará a resolver o problema mais rapidamente.
+    </p>
+
+    @* Botões de ação *@
+    <div class="d-flex gap-3 flex-wrap justify-content-center mb-4">
+        <a href="/" class="btn btn-primary px-4">
+            <i class="cil-home me-2"></i>Voltar ao Painel
+        </a>
+        <button type="button"
+                class="btn btn-outline-danger px-4"
+                data-coreui-toggle="modal"
+                data-coreui-target="#modalDetalheErro">
+            <i class="cil-bug me-2"></i>Ver Detalhes do Erro
+        </button>
+        <button type="button" class="btn btn-outline-secondary px-4" onclick="history.back()">
+            <i class="cil-arrow-left me-2"></i>Voltar
+        </button>
+    </div>
+
+</div>
+
+@* ── Modal de Detalhes do Erro ─────────────────────────────────── *@
+<div class="modal fade" id="modalDetalheErro" tabindex="-1" aria-labelledby="tituloModalErro" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold" id="tituloModalErro">
+                    <i class="cil-bug me-2"></i>Detalhes Técnicos do Erro
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-coreui-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+
+            <div class="modal-body">
+
+                @* Aviso *@
+                <div class="alert alert-warning border-0 d-flex align-items-start gap-2 mb-3" role="alert">
+                    <i class="cil-info mt-1 flex-shrink-0"></i>
+                    <div class="small">
+                        Essas informações são técnicas e destinadas ao suporte. Clique em <strong>Copiar tudo</strong>
+                        e envie o conteúdo para o suporte.
+                    </div>
+                </div>
+
+                @* Tipo do erro *@
+                @if (!string.IsNullOrWhiteSpace(tipoErro))
+                {
+                    <div class="mb-3">
+                        <div class="fw-semibold small text-body-secondary text-uppercase mb-1">
+                            <i class="cil-layers me-1"></i>Tipo do Erro
+                        </div>
+                        <code class="d-block p-2 rounded bg-body-tertiary small text-danger">@tipoErro</code>
+                    </div>
+                }
+
+                @* Mensagem *@
+                <div class="mb-3">
+                    <div class="fw-semibold small text-body-secondary text-uppercase mb-1">
+                        <i class="cil-description me-1"></i>Mensagem
+                    </div>
+                    <div class="p-2 rounded bg-body-tertiary small font-monospace text-body">@mensagemErro</div>
+                </div>
+
+                @* Detalhe interno *@
+                @if (!string.IsNullOrWhiteSpace(detalheErro))
+                {
+                    <div class="mb-3">
+                        <div class="fw-semibold small text-body-secondary text-uppercase mb-1">
+                            <i class="cil-notes me-1"></i>Detalhe Interno
+                        </div>
+                        <div class="p-2 rounded bg-body-tertiary small font-monospace text-body"
+                             style="white-space: pre-wrap; word-break: break-all;">@detalheErro</div>
+                    </div>
+                }
+
+                @* Stack Trace *@
+                @if (!string.IsNullOrWhiteSpace(stackTrace))
+                {
+                    <div class="mb-1">
+                        <div class="fw-semibold small text-body-secondary text-uppercase mb-1">
+                            <i class="cil-code me-1"></i>Stack Trace
+                        </div>
+                        <pre class="p-2 rounded bg-body-tertiary small text-body mb-0"
+                             style="max-height: 280px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; font-size:.75rem;">@stackTrace</pre>
+                    </div>
+                }
+
+                @* Rodapé informativo *@
+                <div class="mt-3 pt-3 border-top d-flex align-items-center justify-content-between">
+                    <span class="small text-body-secondary">
+                        <i class="cil-tag me-1"></i>Requisição: <strong>@idRequisicao</strong>
+                    </span>
+                    <span class="small text-body-secondary">
+                        <i class="cil-clock me-1"></i>@DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")
+                    </span>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="btnCopiarTudo" onclick="copiarTodosDetalhes()">
+                    <i class="cil-copy me-1"></i>Copiar tudo
+                </button>
+                <button type="button" class="btn btn-danger" data-coreui-dismiss="modal">
+                    <i class="cil-x me-1"></i>Fechar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@* Elemento oculto que armazena os dados do erro para o JS ler com segurança *@
+<div id="dadosErro" style="display:none"
+     data-tipo="@tipoErro"
+     data-mensagem="@mensagemErro"
+     data-detalhe="@detalheErro"
+     data-stack="@stackTrace"
+     data-requisicao="@idRequisicao">
+</div>
+
+@section Scripts {
+    <script>
+        function copiarTodosDetalhes() {
+            var el       = document.getElementById('dadosErro');
+            var tipo     = el.getAttribute('data-tipo');
+            var msg      = el.getAttribute('data-mensagem');
+            var detalhe  = el.getAttribute('data-detalhe');
+            var stack    = el.getAttribute('data-stack');
+            var id       = el.getAttribute('data-requisicao');
+            var dataHora = new Date().toLocaleString('pt-BR');
+
+            var texto =
+                '=== RELATÓRIO DE ERRO — DigDogVet ===\n' +
+                'Data/Hora: ' + dataHora + '\n' +
+                'Requisição: ' + id + '\n\n' +
+                'Tipo: ' + tipo + '\n\n' +
+                'Mensagem:\n' + msg + '\n\n' +
+                'Detalhe Interno:\n' + detalhe + '\n\n' +
+                'Stack Trace:\n' + stack;
+
+            function marcarCopiado() {
+                var btn = document.getElementById('btnCopiarTudo');
+                btn.innerHTML = '<i class="cil-check me-1"></i>Copiado!';
+                btn.classList.remove('btn-outline-secondary');
+                btn.classList.add('btn-success');
+                setTimeout(function () {
+                    btn.innerHTML = '<i class="cil-copy me-1"></i>Copiar tudo';
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-secondary');
+                }, 2500);
+            }
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(texto).then(marcarCopiado).catch(function () {
+                    fallbackCopiar(texto);
+                    marcarCopiado();
+                });
+            } else {
+                fallbackCopiar(texto);
+                marcarCopiado();
+            }
+        }
+
+        function fallbackCopiar(texto) {
+            var area = document.createElement('textarea');
+            area.value = texto;
+            area.style.position = 'fixed';
+            area.style.left = '-9999px';
+            area.style.top = '-9999px';
+            document.body.appendChild(area);
+            area.focus();
+            area.select();
+            try { document.execCommand('copy'); } catch (e) { }
+            document.body.removeChild(area);
+        }
+    </script>
+}

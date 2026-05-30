@@ -1,0 +1,96 @@
+﻿@page
+@model LoginModel
+@{
+    Layout = "/Areas/Identity/Pages/_LayoutAutenticacao.cshtml";
+    ViewData["Title"] = "Entrar";
+}
+
+<div class="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
+    <div class="container" style="max-width: 32rem">
+        <div class="d-flex flex-column gap-4">
+
+            <!-- Logo / Título -->
+            <div class="text-center">
+                <h2 class="fw-bold fs-3"><i class="cil-paw me-2"></i> DigDogVet</h2>
+                <p class="text-body-secondary small">Sistema de PetShops e Clínicas Veterinária</p>
+            </div>
+
+            <!-- Card de Login -->
+            <div class="card p-4">
+                <div class="card-body d-flex flex-column gap-4">
+                    <h2 class="h5 text-center">Acesse sua conta</h2>
+
+                    <form method="post" class="row gap-3" autocomplete="off">
+                        @Html.AntiForgeryToken()
+
+                        <!-- Erros gerais -->
+                        @if (!ViewData.ModelState.IsValid)
+                        {
+                            <div class="alert alert-danger border-0 py-2 small">
+                                @Html.ValidationSummary(false)
+                            </div>
+                        }
+
+                        <!-- E-mail -->
+                        <div>
+                            <label class="form-label" asp-for="Input.Email">E-mail</label>
+                            <input class="form-control" asp-for="Input.Email"
+                                   type="email" placeholder="seu@email.com" autocomplete="off" />
+                            <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Senha -->
+                        <div>
+                            <label class="form-label" asp-for="Input.Password">Senha</label>
+                            <div class="input-group">
+                                <input class="form-control" asp-for="Input.Password"
+                                       type="password" placeholder="Sua senha" autocomplete="off" />
+                                <button type="button" class="btn btn-outline-secondary" onclick="alternarSenha(this)">
+                                    <i class="cil-lock-locked"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Lembrar-me -->
+                        <div>
+                            <label class="form-check">
+                                <input class="form-check-input" asp-for="Input.RememberMe" type="checkbox" />
+                                <span class="form-check-label">Lembrar-me neste dispositivo</span>
+                            </label>
+                        </div>
+
+                        <!-- Botão -->
+                        <div>
+                            <button class="btn btn-primary w-100" type="submit">
+                                <i class="cil-account-logout me-1"></i> Entrar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Link para Registro -->
+            @* <div class="text-center text-body-secondary"> *@
+            @*     Não tem uma conta? *@
+            @*     <a asp-page="./Register">Cadastre-se</a> *@
+            @* </div> *@
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function alternarSenha(botao) {
+        const input = botao.closest('.input-group').querySelector('input');
+        const icone = botao.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icone.classList.replace('cil-lock-locked', 'cil-lock-unlocked');
+        } else {
+            input.type = 'password';
+            icone.classList.replace('cil-lock-unlocked', 'cil-lock-locked');
+        }
+    }
+</script>
+

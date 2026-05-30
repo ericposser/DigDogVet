@@ -1,0 +1,379 @@
+@model List<DigDog.Models.BanhoTosa>
+@using DigDog.Models
+@{
+    ViewData["Title"] = "Status do Dia";
+    var tokensAtivos   = ViewBag.TokensAtivos as Dictionary<int, string> ?? new();
+    var dataHoje       = (string)ViewBag.DataHoje;
+
+    var colunas = new[]
+    {
+        (Status: StatusKanban.Aguardando,        Titulo: "Aguardando",          Cor: "secondary", Icone: "cil-clock"),
+        (Status: StatusKanban.NoBanho,           Titulo: "No Banho",            Cor: "primary",   Icone: "cil-drop"),
+        (Status: StatusKanban.EmSecagem,         Titulo: "Em Secagem",          Cor: "warning",   Icone: "cil-sun"),
+        (Status: StatusKanban.ProntoParaBuscar,  Titulo: "Pronto para Buscar",  Cor: "success",   Icone: "cil-check-circle"),
+    };
+}
+
+@* ── Card informativo ──────────────────────────────────────────── *@
+<div class="alert alert-info border-0 shadow-sm py-2 px-3 mb-4 d-flex align-items-center gap-2">
+    <i class="cil-info text-info flex-shrink-0"></i>
+    <span class="small">
+        Arraste os cards entre as colunas para atualizar o status do pet.
+        Use <strong>Gerar link</strong> em cada card para enviar ao tutor, ele verá em tempo real
+        apenas o status do próprio pet, sem acesso aos demais.
+        Os links expiram automaticamente à meia-noite.
+    </span>
+</div>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5">
+            <i class="cil-cursor me-2 text-primary"></i>Status do Dia
+        </strong>
+        <span class="text-body-secondary small text-capitalize">
+            <i class="cil-calendar me-1"></i>@dataHoje
+        </span>
+    </div>
+
+    <div class="card-body">
+
+        @if (!Model.Any())
+        {
+            <div class="text-center text-body-secondary py-5">
+                <i class="cil-drop" style="font-size:3rem;opacity:.3"></i>
+                <p class="mt-3 mb-0">Nenhum banho ou tosa agendado para hoje.</p>
+                <a asp-controller="BanhoTosa" asp-action="Create" class="btn btn-primary btn-sm mt-3">
+                    <i class="cil-plus me-1"></i>Novo Agendamento
+                </a>
+            </div>
+        }
+        else
+        {
+            <!-- ── Kanban Board ────────────────────────────────────── -->
+            <div class="kanban-board drag-ativo" id="kanbanBoard">
+                @foreach (var coluna in colunas)
+                {
+                    var cardsColuna = Model.Where(b => b.StatusKanban == coluna.Status).ToList();
+                    <div class="kanban-coluna bg-body-tertiary border border-@coluna.Cor border-opacity-25"
+                         data-status="@((int)coluna.Status)"
+                         id="coluna-@((int)coluna.Status)">
+
+                        <!-- Cabeçalho da coluna -->
+                        <div class="d-flex align-items-center justify-content-between mb-3 px-1 kanban-cabecalho">
+                            <span class="fw-semibold small">
+                                <i class="@coluna.Icone text-@coluna.Cor me-1"></i>@coluna.Titulo
+                            </span>
+                            <span class="badge bg-@coluna.Cor rounded-pill contador-coluna"
+                                  id="cnt-@((int)coluna.Status)">
+                                @cardsColuna.Count
+                            </span>
+                        </div>
+
+                        <!-- Cards -->
+                        @foreach (var banho in cardsColuna)
+                        {
+                            var idCriptografado = ViewBag.CriptografarId(banho.Id);
+                            var temToken = tokensAtivos.TryGetValue(banho.Id, out var linkPublico);
+
+                            <div class="kanban-card"
+                                 data-id="@banho.Id"
+                                 data-id-cript="@idCriptografado"
+                                 data-status="@((int)banho.StatusKanban)"
+                                 id="card-@banho.Id">
+
+                                <!-- Nome + horário -->
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <span class="fw-semibold">@banho.Pet?.Nome</span>
+                                    <span class="badge bg-body-secondary text-body-secondary ms-2 flex-shrink-0"
+                                          style="font-size:.7rem">
+                                        @banho.DataHora.ToString("HH:mm")
+                                    </span>
+                                </div>
+
+                                <div class="text-body-secondary small mb-2">@banho.TipoServico</div>
+
+                                @if (!string.IsNullOrWhiteSpace(banho.Observacoes))
+                                {
+                                    <div class="text-body-secondary mb-2" style="font-size:.75rem">
+                                        <i class="cil-notes me-1"></i>@banho.Observacoes
+                                    </div>
+                                }
+
+                                <!-- Ações do link do tutor -->
+                                <div class="border-top pt-2 mt-1 d-flex align-items-center gap-1 flex-wrap">
+                                    @if (temToken && linkPublico != null)
+                                    {
+                                        <span class="badge bg-success me-1" style="font-size:.68rem">
+                                            <i class="cil-link me-1"></i>Link ativo
+                                        </span>
+                                        <button type="button"
+                                                class="btn btn-outline-secondary btn-xs"
+                                                title="Copiar link do tutor"
+                                                onclick="copiarLink('@linkPublico', this)">
+                                            <i class="cil-copy"></i>
+                                        </button>
+                                        <a href="@linkPublico" target="_blank"
+                                           class="btn btn-outline-primary btn-xs"
+                                           title="Abrir visualização do tutor">
+                                            <i class="cil-external-link"></i>
+                                        </a>
+                                        <!-- Botão que abre a modal de confirmação -->
+                                        <button type="button"
+                                                class="btn btn-outline-danger btn-xs"
+                                                title="Revogar link"
+                                                onclick="abrirModalRevogar('@idCriptografado', '@banho.Pet?.Nome')">
+                                            <i class="cil-trash"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <form asp-controller="StatusDia" asp-action="GerarLinkPet"
+                                              method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@idCriptografado" />
+                                            <button type="submit"
+                                                    class="btn btn-outline-success btn-xs"
+                                                    title="Gerar link para o tutor">
+                                                <i class="cil-link me-1"></i>Gerar link
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+    </div>
+</div>
+
+<!-- ── Modal de confirmação de revogação ──────────────────────────── -->
+<div class="modal fade" id="modalRevogar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center
+                                justify-content-center flex-shrink-0" style="width:36px;height:36px">
+                        <i class="cil-trash text-danger"></i>
+                    </div>
+                    <h6 class="modal-title fw-semibold mb-0">Revogar link</h6>
+                </div>
+                <button type="button" class="btn-close" data-coreui-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="text-body-secondary small mb-0">
+                    Tem certeza que deseja revogar o link de
+                    <strong id="modalRevogarNomePet"></strong>?
+                    O tutor perderá o acesso imediatamente.
+                </p>
+            </div>
+            <div class="modal-footer border-0 pt-0 gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        data-coreui-dismiss="modal">
+                    Cancelar
+                </button>
+                <form id="formRevogar" asp-controller="StatusDia" asp-action="RevogarLinkPet" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="modalRevogarIdCript" name="id" value="" />
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="cil-trash me-1"></i>Revogar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ── Kanban Board ────────────────────────────────────────────────── */
+    .kanban-board {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+    }
+    @@media (max-width: 991px) { .kanban-board { grid-template-columns: repeat(2, 1fr); } }
+    @@media (max-width: 575px) { .kanban-board { grid-template-columns: 1fr; } }
+
+    .kanban-coluna {
+        min-height: 200px;
+        border-radius: 12px;
+        padding: .75rem;
+    }
+
+    .kanban-card {
+        border-radius: 10px;
+        padding: .8rem .9rem;
+        margin-bottom: .55rem;
+        background: var(--cui-body-bg);
+        border: 1px solid rgba(0,0,0,.08);
+        box-shadow: 0 1px 4px rgba(0,0,0,.06);
+        transition: box-shadow .15s;
+    }
+    .drag-ativo .kanban-card        { cursor: grab; user-select: none; }
+    .drag-ativo .kanban-card:active { cursor: grabbing; }
+    .drag-ativo .kanban-cabecalho   { cursor: default !important; user-select: none; }
+    .kanban-card.sortable-ghost     { opacity: .4; box-shadow: 0 0 0 2px var(--cui-primary); }
+    .kanban-card.sortable-chosen    { box-shadow: 0 6px 18px rgba(0,0,0,.16); }
+
+    .btn-xs {
+        padding: .15rem .4rem;
+        font-size: .75rem;
+        line-height: 1.4;
+        border-radius: .3rem;
+    }
+
+    @@keyframes pulso-card {
+        0%   { box-shadow: 0 0 0 0   rgba(var(--cui-primary-rgb),.4); }
+        70%  { box-shadow: 0 0 0 8px rgba(var(--cui-primary-rgb),0); }
+        100% { box-shadow: 0 0 0 0   rgba(var(--cui-primary-rgb),0); }
+    }
+    .card-atualizado { animation: pulso-card .65s ease-out; }
+</style>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+    <script>
+        const tokensAtivos = @Html.Raw(
+                                 System.Text.Json.JsonSerializer.Serialize(
+                                     ((Dictionary<int, string>)ViewBag.TokensAtivos)
+                                     .ToDictionary(kv => kv.Key.ToString(), kv => kv.Value)
+                                 )
+                             );
+
+        // ── Modal de confirmação de revogação ────────────────────────
+        function abrirModalRevogar(idCript, nomePet) {
+            document.getElementById("modalRevogarIdCript").value = idCript;
+            document.getElementById("modalRevogarNomePet").textContent = nomePet;
+            new coreui.Modal(document.getElementById("modalRevogar")).show();
+        }
+
+        // ── Atualizar contadores ─────────────────────────────────────
+        function atualizarContadores() {
+            document.querySelectorAll(".kanban-coluna").forEach(col => {
+                const total = col.querySelectorAll(".kanban-card").length;
+                document.getElementById(`cnt-${col.dataset.status}`).textContent = total;
+            });
+        }
+
+        // ── Copiar link ──────────────────────────────────────────────
+        function copiarLink(link, btn) {
+            navigator.clipboard.writeText(link).then(() => {
+                const icone = btn.querySelector("i");
+                icone.className = "cil-check text-success";
+                setTimeout(() => { icone.className = "cil-copy"; }, 2000);
+            });
+        }
+
+        // ── Mover card no DOM ao receber broadcast ───────────────────
+        function moverCardNoDom(idBanhoTosa, novoStatus) {
+            const card = document.getElementById(`card-${idBanhoTosa}`);
+            if (!card) return;
+            const colunaDestino = document.getElementById(`coluna-${novoStatus}`);
+            if (!colunaDestino) return;
+
+            colunaDestino.appendChild(card);
+            card.dataset.status = novoStatus;
+
+            card.classList.remove("card-atualizado");
+            void card.offsetWidth;
+            card.classList.add("card-atualizado");
+
+            atualizarContadores();
+        }
+
+        // ── Conexão SignalR ──────────────────────────────────────────
+        const conexao = new signalR.HubConnectionBuilder()
+            .withUrl("/kanbanHub")
+            .withAutomaticReconnect([0, 2000, 5000, 10000])
+            .configureLogging(signalR.LogLevel.Warning)
+            .build();
+
+        conexao.on("CardMovido", (idBanhoTosa, novoStatus) => {
+            moverCardNoDom(idBanhoTosa, novoStatus);
+        });
+
+        async function entrarEmTodasAsSalas() {
+            for (const token of Object.values(tokensAtivos)) {
+                const url   = new URL(token);
+                const tkVal = url.searchParams.get("token");
+                if (tkVal) {
+                    try { await conexao.invoke("EntrarNaSala", tkVal); } catch (_) {}
+                }
+            }
+        }
+
+        async function iniciarConexao() {
+            try {
+                await conexao.start();
+                await entrarEmTodasAsSalas();
+            } catch (e) {
+                setTimeout(iniciarConexao, 5000);
+            }
+        }
+
+        iniciarConexao();
+
+        // ── Drag-and-drop ────────────────────────────────────────────
+        document.querySelectorAll(".kanban-coluna").forEach(coluna => {
+            Sortable.create(coluna, {
+                group: "kanban",
+                animation: 180,
+                ghostClass: "sortable-ghost",
+                chosenClass: "sortable-chosen",
+                draggable: ".kanban-card",
+                filter: ".kanban-cabecalho",
+                onEnd: async function (evt) {
+                    const card           = evt.item;
+                    const idBanhoTosa    = parseInt(card.dataset.id);
+                    const idCript        = card.dataset.idCript;
+                    const novoStatus     = parseInt(evt.to.dataset.status);
+                    const statusAnterior = parseInt(card.dataset.status);
+
+                    if (novoStatus === statusAnterior && evt.from === evt.to) return;
+
+                    try {
+                        const form = new FormData();
+                        form.append("id", idCript);
+                        form.append("novoStatus", novoStatus);
+                        form.append("__RequestVerificationToken",
+                            document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? "");
+
+                        const resp = await fetch("/StatusDia/AtualizarStatus", {
+                            method: "POST",
+                            body: form
+                        });
+
+                        if (!resp.ok) throw new Error("Falha ao salvar");
+
+                        card.dataset.status = novoStatus;
+                        atualizarContadores();
+
+                        const token = tokensAtivos[idBanhoTosa.toString()];
+                        if (token) {
+                            const url   = new URL(token);
+                            const tkVal = url.searchParams.get("token");
+                            if (tkVal) {
+                                try { await conexao.invoke("MoverCard", idBanhoTosa, novoStatus); } catch (_) {}
+                            }
+                        }
+
+                    } catch (e) {
+                        evt.from.insertBefore(card, evt.from.children[evt.oldIndex] || null);
+                        card.dataset.status = statusAnterior;
+                        atualizarContadores();
+                        alert("Falha ao mover o card. Tente novamente.");
+                    }
+                }
+            });
+        });
+
+        atualizarContadores();
+    </script>
+
+    @Html.AntiForgeryToken()
+}

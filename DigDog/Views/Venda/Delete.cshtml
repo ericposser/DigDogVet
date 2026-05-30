@@ -1,0 +1,65 @@
+@model DigDog.Models.Venda
+@{
+    ViewData["Title"] = "Cancelar Venda";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5 text-danger"><i class="cil-trash me-2"></i>Cancelar Venda</strong>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="cil-arrow-left me-1"></i> Voltar
+        </a>
+    </div>
+
+    <div class="card-body">
+
+        <div class="alert alert-danger border-0 shadow-sm mb-4">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="cil-warning"></i>
+                <strong>Atenção! Esta ação não pode ser desfeita.</strong>
+            </div>
+            <small>
+                A venda de <strong>@Model.Quantidade unidade(s)</strong> de
+                <strong>@(Model.Produto?.Nome ?? "—")</strong> será cancelada e
+                o estoque será <strong>restaurado automaticamente</strong>.
+            </small>
+        </div>
+
+        <dl class="row mb-0">
+            <dt class="col-sm-3 fw-semibold">Produto</dt>
+            <dd class="col-sm-9">@(Model.Produto?.Nome ?? "—")</dd>
+
+            <dt class="col-sm-3 fw-semibold">Data da Venda</dt>
+            <dd class="col-sm-9">@Model.DataVenda.ToString("dd/MM/yyyy HH:mm")</dd>
+
+            <dt class="col-sm-3 fw-semibold">Quantidade</dt>
+            <dd class="col-sm-9">@Model.Quantidade unidade(s)</dd>
+
+            <dt class="col-sm-3 fw-semibold">Preço Unitário</dt>
+            <dd class="col-sm-9">@Model.PrecoUnitario.ToString("C2")</dd>
+
+            <dt class="col-sm-3 fw-semibold">Total</dt>
+            <dd class="col-sm-9 fw-semibold">@Model.Total.ToString("C2")</dd>
+
+            @if (!string.IsNullOrEmpty(Model.Observacoes))
+            {
+                <dt class="col-sm-3 fw-semibold">Observações</dt>
+                <dd class="col-sm-9">@Model.Observacoes</dd>
+            }
+        </dl>
+
+        <div class="mt-4 pt-3 border-top d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="cil-x me-1"></i> Voltar
+            </a>
+            <form asp-action="Delete" asp-route-id="@ViewBag.IdCriptografado" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <button type="submit" class="btn btn-danger">
+                    <i class="cil-trash me-1"></i> Confirmar Cancelamento
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>

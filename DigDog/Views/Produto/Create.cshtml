@@ -1,0 +1,83 @@
+@model DigDog.Models.Produto
+@{
+    ViewData["Title"] = "Novo Produto";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5"><i class="cil-plus me-2"></i>Novo Produto</strong>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="cil-arrow-left me-1"></i> Voltar
+        </a>
+    </div>
+
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 shadow-sm small" role="alert"></div>
+
+            <div class="row g-3">
+
+                <div class="col-md-8">
+                    <label asp-for="Nome" class="form-label fw-semibold"></label>
+                    <input asp-for="Nome" class="form-control" placeholder="Nome do produto" />
+                    <span asp-validation-for="Nome" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Estoque" class="form-label fw-semibold"></label>
+                    <input asp-for="Estoque" class="form-control" type="number" min="0" placeholder="0" />
+                    <span asp-validation-for="Estoque" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Preco" class="form-label fw-semibold"></label>
+                    <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input asp-for="Preco" id="campPreco" class="form-control" type="text"
+                               inputmode="numeric" placeholder="0,00" data-val="false" />
+                    </div>
+                    <span asp-validation-for="Preco" class="text-danger small"></span>
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="Descricao" class="form-label fw-semibold"></label>
+                    <textarea asp-for="Descricao" class="form-control" rows="3"
+                              placeholder="Descrição do produto..."></textarea>
+                    <span asp-validation-for="Descricao" class="text-danger small"></span>
+                </div>
+
+            </div>
+
+            <div class="mt-4 pt-3 border-top d-flex gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="cil-x me-1"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="cil-save me-1"></i> Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        const campPreco = document.getElementById('campPreco');
+
+        campPreco.addEventListener('input', function () {
+            let n = this.value.replace(/\D/g, '');
+            if (!n) { this.value = ''; return; }
+            this.value = (parseInt(n) / 100).toFixed(2)
+                .replace('.', ',')
+                .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        });
+
+        document.querySelector('form').addEventListener('submit', function () {
+            let v = campPreco.value.replace(/\./g, '').replace(',', '.');
+            campPreco.value = isNaN(parseFloat(v)) ? '' : parseFloat(v).toFixed(2);
+        });
+    </script>
+}

@@ -1,0 +1,54 @@
+@model DigDog.Models.UsuarioRoleViewModel
+@{
+    ViewData["Title"] = "Remover Funcionário";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5 text-danger">
+            <i class="cil-trash me-2"></i>Remover Funcionário
+        </strong>
+    </div>
+    <div class="card-body">
+
+        <div class="alert alert-danger border-0 shadow-sm mb-4">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="cil-warning fs-5"></i>
+                <strong>Atenção — esta ação não pode ser desfeita!</strong>
+            </div>
+            <ul class="mb-0 mt-2 small">
+                <li>O funcionário <strong>@Model.Email</strong> será removido permanentemente.</li>
+                <li>Ele perderá todo o acesso ao sistema imediatamente.</li>
+            </ul>
+        </div>
+
+        <dl class="row mb-0">
+            <dt class="col-sm-3 fw-semibold">Nome</dt>
+            <dd class="col-sm-9">@(Model.Nome ?? "—")</dd>
+            <dt class="col-sm-3 fw-semibold">E-mail</dt>
+            <dd class="col-sm-9">@Model.Email</dd>
+            <dt class="col-sm-3 fw-semibold">Perfil de Acesso</dt>
+            <dd class="col-sm-9">
+                @if (Model.NomeRole != null)
+                {
+                    <span class="badge bg-primary">@Model.NomeRole</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">Sem perfil</span>
+                }
+            </dd>
+        </dl>
+
+        <div class="mt-4 pt-3 border-top d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+            <form asp-action="Delete" asp-route-id="@Model.IdUsuario" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger">
+                    <i class="cil-trash me-1"></i>Confirmar Remoção
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>

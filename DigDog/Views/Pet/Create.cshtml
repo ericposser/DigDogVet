@@ -1,0 +1,91 @@
+@* Create.cshtml *@
+@model DigDog.Models.Pet
+@{
+    ViewData["Title"] = "Novo Pet";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5"><i class="cil-plus me-2"></i>Novo Pet</strong>
+    </div>
+
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 shadow-sm small" role="alert"></div>
+
+            <div class="row g-3">
+
+                <!-- Nome -->
+                <div class="col-md-6">
+                    <label asp-for="Nome" class="form-label fw-semibold"></label>
+                    <input asp-for="Nome" class="form-control" placeholder="Nome do pet" />
+                    <span asp-validation-for="Nome" class="text-danger small"></span>
+                </div>
+
+                <!-- Tutor -->
+                <div class="col-md-6">
+                    <label asp-for="IdCliente" class="form-label fw-semibold"></label>
+                    <select asp-for="IdCliente" class="form-select"
+                            asp-items="ViewBag.IdCliente">
+                        <option value="">— Selecione o tutor —</option>
+                    </select>
+                    <span asp-validation-for="IdCliente" class="text-danger small"></span>
+                </div>
+
+                <!-- Espécie -->
+                <div class="col-md-4">
+                    <label asp-for="Especie" class="form-label fw-semibold"></label>
+                    <select asp-for="Especie" class="form-select">
+                        <option value="">— Selecione —</option>
+                        <option value="Cachorro">Cachorro</option>
+                        <option value="Gato">Gato</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                    <span asp-validation-for="Especie" class="text-danger small"></span>
+                </div>
+
+                <!-- Raça -->
+                <div class="col-md-4">
+                    <label asp-for="Raca" class="form-label fw-semibold"></label>
+                    <input asp-for="Raca" class="form-control" placeholder="Ex: Labrador, Persa" />
+                    <span asp-validation-for="Raca" class="text-danger small"></span>
+                </div>
+
+                <!-- Sexo -->
+                <div class="col-md-4">
+                    <label asp-for="Sexo" class="form-label fw-semibold"></label>
+                    <select asp-for="Sexo" class="form-select">
+                        <option value="">— Selecione —</option>
+                        <option value="Macho">Macho</option>
+                        <option value="Fêmea">Fêmea</option>
+                    </select>
+                    <span asp-validation-for="Sexo" class="text-danger small"></span>
+                </div>
+
+                <!-- Data de Nascimento -->
+                <div class="col-md-4">
+                    <label asp-for="DataNascimento" class="form-label fw-semibold"></label>
+                    <input asp-for="DataNascimento" class="form-control" type="date" />
+                    <span asp-validation-for="DataNascimento" class="text-danger small"></span>
+                </div>
+
+            </div>
+
+            <!-- Botões -->
+            <div class="mt-4 pt-3 border-top d-flex gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="cil-x me-1"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="cil-save me-1"></i> Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

@@ -1,0 +1,317 @@
+@model IEnumerable<DigDog.Models.Vacinacao>
+@{
+    ViewData["Title"] = "Carteira de Vacinação";
+    var petAgrupado    = Model.GroupBy(v => v.Pet).ToList();
+    var criptografarId = ViewBag.CriptografarId as Func<int, string>;
+
+    // Dicionário petId → link público ativo
+    var tokensAtivos = ViewBag.TokensAtivos as Dictionary<int, string> ?? new();
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs5/1.13.6/dataTables.bootstrap5.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-responsive-bs5/2.5.0/responsive.bootstrap5.min.css" />
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5"><i class="cil-heart me-2"></i>Carteira de Vacinação</strong>
+        <a asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="cil-plus me-1"></i> Nova Vacinação
+        </a>
+    </div>
+
+    <div class="card-body">
+        @if (!Model.Any())
+        {
+            <div class="text-center text-body-secondary py-5">
+                <i class="cil-heart" style="font-size: 2.5rem;"></i>
+                <p class="mt-3 mb-1 fw-semibold">Nenhuma vacinação registrada</p>
+                <small>Clique em "Nova Vacinação" para começar.</small>
+            </div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var grupo in petAgrupado)
+                {
+                    var pet        = grupo.Key;
+                    var vacinacoes = grupo.ToList();
+                    var petId      = pet?.Id ?? 0;
+                    var petIdStr   = petId.ToString();
+                    var idCript    = criptografarId!(petId);
+
+                    var temToken    = tokensAtivos.TryGetValue(petId, out var linkPublico);
+                    var temVencida  = vacinacoes.Any(v => v.DataProximaDose.HasValue && v.DataProximaDose.Value < DateTime.Today);
+                    var temProxima  = vacinacoes.Any(v => v.DataProximaDose.HasValue && (v.DataProximaDose.Value - DateTime.Today).TotalDays <= 7 && v.DataProximaDose.Value >= DateTime.Today);
+
+                    var corCard     = temVencida ? "danger" : temProxima ? "warning" : "primary";
+                    var iconeStatus = temVencida ? "cil-warning" : temProxima ? "cil-bell" : "cil-check-circle";
+
+                    <div class="col-md-4 col-sm-6">
+                        <div class="card border-@corCard h-100 shadow-sm">
+                            <!-- Cabeçalho clicável para abrir modal -->
+                            <div class="card-header bg-@corCard bg-opacity-10 d-flex justify-content-between align-items-center"
+                                 style="cursor:pointer"
+                                 onclick="abrirCarteira('@petIdStr', '@(pet?.Nome ?? "—")')">
+                                <span class="fw-semibold"><i class="cil-animal me-1"></i> @(pet?.Nome ?? "—")</span>
+                                <i class="@iconeStatus text-@corCard"></i>
+                            </div>
+
+                            <!-- Corpo clicável -->
+                            <div class="card-body" style="cursor:pointer"
+                                 onclick="abrirCarteira('@petIdStr', '@(pet?.Nome ?? "—")')">
+                                <p class="card-text small text-body-secondary mb-1">
+                                    <strong>Espécie:</strong> @(pet?.Especie ?? "—")
+                                </p>
+                                <p class="card-text small text-body-secondary mb-1">
+                                    <strong>Raça:</strong> @(pet?.Raca ?? "—")
+                                </p>
+                                <p class="card-text small text-body-secondary mb-0">
+                                    <strong>Vacinações:</strong> @vacinacoes.Count registro(s)
+                                </p>
+                            </div>
+
+                            <!-- Rodapé com link da carteirinha -->
+                            <div class="card-footer d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                <span class="text-body-secondary small">
+                                    <i class="cil-list me-1"></i> Clique para ver a carteira
+                                </span>
+                                <div class="d-flex align-items-center gap-1">
+                                    @if (temToken && linkPublico != null)
+                                    {
+                                        <span class="badge bg-success" style="font-size:.68rem">
+                                            <i class="cil-link me-1"></i>Link ativo
+                                        </span>
+                                        <button type="button"
+                                                class="btn btn-outline-secondary btn-xs"
+                                                title="Copiar link da carteirinha"
+                                                onclick="copiarLink('@linkPublico', this); event.stopPropagation();">
+                                            <i class="cil-copy"></i>
+                                        </button>
+                                        <a href="@linkPublico" target="_blank"
+                                           class="btn btn-outline-primary btn-xs"
+                                           title="Abrir carteirinha do tutor"
+                                           onclick="event.stopPropagation()">
+                                            <i class="cil-external-link"></i>
+                                        </a>
+                                        <button type="button"
+                                                class="btn btn-outline-danger btn-xs"
+                                                title="Revogar link"
+                                                onclick="abrirModalRevogar('@idCript', '@(pet?.Nome ?? "—")'); event.stopPropagation();">
+                                            <i class="cil-trash"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <form asp-controller="Carteira" asp-action="GerarLink"
+                                              method="post" class="d-inline"
+                                              onclick="event.stopPropagation()">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@idCript" />
+                                            <button type="submit" class="btn btn-outline-success btn-xs"
+                                                    title="Gerar link da carteirinha">
+                                                <i class="cil-link me-1"></i>Gerar link
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal da carteirinha -->
+                    <div class="modal fade" id="modal-@petIdStr" tabindex="-1"
+                         aria-labelledby="modalLabel-@petIdStr" aria-hidden="true">
+                        <div class="modal-dialog modal-xl modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="modalLabel-@petIdStr">
+                                        <i class="cil-heart me-2"></i> Carteira de Vacinação — @(pet?.Nome ?? "—")
+                                    </h5>
+                                    <button type="button" class="btn-close"
+                                            data-coreui-dismiss="modal" aria-label="Fechar"></button>
+                                </div>
+                                <div class="modal-body p-0">
+                                    <div class="px-3 pt-3">
+                                        <table id="tabela-@petIdStr"
+                                               class="table table-striped table-hover align-middle w-100">
+                                            <thead>
+                                            <tr>
+                                                <th>Vacina</th>
+                                                <th>Dose</th>
+                                                <th>Data de Aplicação</th>
+                                                <th>Próxima Dose</th>
+                                                <th class="text-end">Ações</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            @foreach (var vacinacao in vacinacoes)
+                                            {
+                                                var proximaDoseClass = "";
+                                                if (vacinacao.DataProximaDose.HasValue)
+                                                {
+                                                    var dias = (vacinacao.DataProximaDose.Value - DateTime.Today).TotalDays;
+                                                    if (dias < 0) proximaDoseClass = "text-danger fw-semibold";
+                                                    else if (dias <= 7) proximaDoseClass = "text-warning fw-semibold";
+                                                }
+                                                <tr>
+                                                    <td class="fw-semibold">@(vacinacao.Vacina?.Nome ?? "—")</td>
+                                                    <td>@(vacinacao.Dose ?? "—")</td>
+                                                    <td data-order="@vacinacao.DataAplicacao.ToString("yyyy-MM-dd")">
+                                                        @vacinacao.DataAplicacao.ToString("dd/MM/yyyy")
+                                                    </td>
+                                                    <td class="@proximaDoseClass"
+                                                        data-order="@(vacinacao.DataProximaDose.HasValue ? vacinacao.DataProximaDose.Value.ToString("yyyy-MM-dd") : "9999-99-99")">
+                                                        @if (vacinacao.DataProximaDose.HasValue)
+                                                        {
+                                                            var dias = (vacinacao.DataProximaDose.Value - DateTime.Today).TotalDays;
+                                                            @vacinacao.DataProximaDose.Value.ToString("dd/MM/yyyy")
+                                                            if (dias < 0)
+                                                            {
+                                                                <span class="badge bg-danger ms-1">Vencida</span>
+                                                            }
+                                                            else if (dias <= 7)
+                                                            {
+                                                                <span class="badge bg-warning ms-1">Em breve</span>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>—</span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="d-flex gap-2 justify-content-end">
+                                                            <a asp-action="Edit"
+                                                               asp-route-id="@criptografarId(vacinacao.Id)"
+                                                               class="btn btn-outline-primary btn-sm"
+                                                               title="Editar"
+                                                               data-coreui-toggle="tooltip">
+                                                                <i class="cil-pencil"></i>
+                                                            </a>
+                                                            <a asp-action="Delete"
+                                                               asp-route-id="@criptografarId(vacinacao.Id)"
+                                                               class="btn btn-outline-danger btn-sm"
+                                                               title="Excluir"
+                                                               data-coreui-toggle="tooltip">
+                                                                <i class="cil-trash"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary"
+                                            data-coreui-dismiss="modal">
+                                        <i class="cil-x me-1"></i> Fechar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ── Modal de confirmação de revogação ──────────────────────────── -->
+<div class="modal fade" id="modalRevogarCarteira" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center
+                                justify-content-center flex-shrink-0" style="width:36px;height:36px">
+                        <i class="cil-trash text-danger"></i>
+                    </div>
+                    <h6 class="modal-title fw-semibold mb-0">Revogar link da carteirinha</h6>
+                </div>
+                <button type="button" class="btn-close"
+                        data-coreui-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="text-body-secondary small mb-0">
+                    Tem certeza que deseja revogar o link da carteirinha de
+                    <strong id="modalRevogarNomePet"></strong>?
+                    O tutor perderá o acesso imediatamente.
+                </p>
+            </div>
+            <div class="modal-footer border-0 pt-0 gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        data-coreui-dismiss="modal">
+                    Cancelar
+                </button>
+                <form id="formRevogarCarteira"
+                      asp-controller="Carteira" asp-action="RevogarLink" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="modalRevogarIdCript" name="id" value="" />
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="cil-trash me-1"></i>Revogar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net/1.13.6/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs5/1.13.6/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-responsive/2.5.0/dataTables.responsive.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-responsive-bs5/2.5.0/responsive.bootstrap5.min.js"></script>
+
+    <script>
+        // ── Abrir modal da carteirinha ───────────────────────────────
+        function abrirCarteira(petId, nomePet) {
+            const modalEl = document.getElementById('modal-' + petId);
+            const modal   = new coreui.Modal(modalEl);
+            modal.show();
+
+            modalEl.addEventListener('shown.coreui.modal', function () {
+                const tabelaId = '#tabela-' + petId;
+                if (!$.fn.DataTable.isDataTable(tabelaId)) {
+                    $(tabelaId).DataTable({
+                        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
+                        responsive: true,
+                        order: [[2, 'desc']],
+                        columnDefs: [
+                            { responsivePriority: 1, targets: 0 },
+                            { responsivePriority: 2, targets: 4 },
+                            { responsivePriority: 3, targets: 2 },
+                            { responsivePriority: 4, targets: 3 },
+                            { responsivePriority: 5, targets: 1 },
+                            { orderable: false, targets: 4 }
+                        ],
+                        pageLength: 10,
+                        lengthMenu: [5, 10, 25, 50]
+                    });
+                } else {
+                    $(tabelaId).DataTable().responsive.recalc();
+                }
+                modalEl.querySelectorAll('[data-coreui-toggle="tooltip"]').forEach(el => {
+                    new coreui.Tooltip(el);
+                });
+            }, { once: false });
+        }
+
+        // ── Modal de confirmação de revogação ────────────────────────
+        function abrirModalRevogar(idCript, nomePet) {
+            document.getElementById("modalRevogarIdCript").value = idCript;
+            document.getElementById("modalRevogarNomePet").textContent = nomePet;
+            new coreui.Modal(document.getElementById("modalRevogarCarteira")).show();
+        }
+
+        // ── Copiar link ──────────────────────────────────────────────
+        function copiarLink(link, btn) {
+            navigator.clipboard.writeText(link).then(() => {
+                const icone = btn.querySelector("i");
+                icone.className = "cil-check text-success";
+                setTimeout(() => { icone.className = "cil-copy"; }, 2000);
+            });
+        }
+    </script>
+}

@@ -1,0 +1,76 @@
+[data-coreui-theme="dark"] body,
+[data-coreui-theme="dark"] .wrapper,
+[data-coreui-theme="dark"] .body {
+  background-color: #1c212b !important;
+}
+
+[data-coreui-theme="light"] body,
+[data-coreui-theme="light"] .wrapper,
+[data-coreui-theme="light"] .body {
+  background-color: #f3f4f7 !important;
+}
+
+@media (min-width: 992px) {
+  .wrapper {
+    padding-left: 256px; /* Largura padrão da sidebar aberta */
+    transition: padding-left 0.2s ease-in-out; /* Animação suave ao encolher */
+  }
+
+  /* Quando clica no botão do rodapé para encolher (ficar só a patinha) */
+  .sidebar.sidebar-narrow-unfoldable ~ .wrapper,
+  .sidebar.sidebar-narrow ~ .wrapper {
+    padding-left: 64px;
+  }
+
+  /* Quando clica no botão do topo para esconder a sidebar por completo */
+  .sidebar.hide ~ .wrapper {
+    padding-left: 0;
+  }
+}
+
+/* ── DataTables ─────────────────────────────────────────────────────── */
+div.dataTables_wrapper div.dataTables_length   { padding: 1rem 0 0 0; }
+div.dataTables_wrapper div.dataTables_filter   { padding: 1rem 0 0 0; }
+div.dataTables_wrapper div.dataTables_info     { padding: 0.75rem 0 0.75rem 0; }
+div.dataTables_wrapper div.dataTables_paginate { padding: 0.75rem 0 0.75rem 0; }
+
+/* Remove setas de input number */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+
+/* ── Overlay de Carregamento Global ────────────────────────────────── */
+#overlayCarregando {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  z-index: 99999;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: fadeInOverlay 0.15s ease-in-out forwards;
+}
+
+#overlayCarregando.ativo {
+  display: flex;
+}
+
+.spinner-carregando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.texto-carregando {
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

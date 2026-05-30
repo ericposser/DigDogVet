@@ -1,0 +1,100 @@
+@model IEnumerable<DigDog.Models.Vacina>
+@{
+    ViewData["Title"] = "Catálogo de Vacinas";
+    var criptografarId = ViewBag.CriptografarId as Func<int, string>;
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs5/1.13.6/dataTables.bootstrap5.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-responsive-bs5/2.5.0/responsive.bootstrap5.min.css" />
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5"><i class="cil-eyedropper me-2"></i>Catálogo de Vacinas</strong>
+        <a asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="cil-plus me-1"></i> Nova Vacina
+        </a>
+    </div>
+    <div class="card-body p-0">
+        @if (!Model.Any())
+        {
+            <div class="text-center text-body-secondary py-5">
+                <i class="cil-eyedropper" style="font-size: 2.5rem;"></i>
+                <p class="mt-3 mb-1 fw-semibold">Nenhuma vacina cadastrada</p>
+                <small>Clique em "Nova Vacina" para começar.</small>
+            </div>
+        }
+        else
+        {
+            <div class="px-3 pt-3">
+                <table id="tabelaVacina" class="table table-striped table-hover align-middle w-100">
+                    <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Validade</th>
+                        <th>Fabricante</th>
+                        <th>Lote</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var vacina in Model)
+                    {
+                        var dias = (vacina.DataValidade - DateTime.Today).TotalDays;
+                        var validadeClass = dias < 0 ? "text-danger fw-semibold" : dias <= 7 ? "text-warning fw-semibold" : "";
+                        <tr>
+                            <td class="fw-semibold">@vacina.Nome</td>
+                            <td class="@validadeClass" data-order="@vacina.DataValidade.ToString("yyyy-MM-dd")">
+                                @vacina.DataValidade.ToString("dd/MM/yyyy")
+                                @if (dias < 0)
+                                { <span class="badge bg-danger ms-1">Vencida</span> }
+                                else if (dias <= 7)
+                                { <span class="badge bg-warning ms-1">Vence em breve</span> }
+                            </td>
+                            <td>@(vacina.Fabricante ?? "—")</td>
+                            <td>@(vacina.Lote ?? "—")</td>
+                            <td class="text-end">
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a asp-action="Edit" asp-route-id="@criptografarId(vacina.Id)"
+                                       class="btn btn-outline-primary btn-sm" title="Editar">
+                                        <i class="cil-pencil"></i>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@criptografarId(vacina.Id)"
+                                       class="btn btn-outline-danger btn-sm" title="Excluir">
+                                        <i class="cil-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net/1.13.6/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs5/1.13.6/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-responsive/2.5.0/dataTables.responsive.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-responsive-bs5/2.5.0/responsive.bootstrap5.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#tabelaVacina').DataTable({
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
+                responsive: true,
+                order: [[1, 'asc']],
+                columnDefs: [
+                    { responsivePriority: 1, targets: 0 }, // Nome — nunca esconde
+                    { responsivePriority: 2, targets: 1 }, // Validade — segundo a não esconder
+                    { responsivePriority: 3, targets: 4 }, // Ações — terceiro
+                    { responsivePriority: 4, targets: 2 }, // Fabricante — esconde primeiro
+                    { responsivePriority: 5, targets: 3 }, // Lote — esconde por último
+                    { orderable: false, targets: 4 }
+                ],
+                pageLength: 10,
+                lengthMenu: [5, 10, 25, 50]
+            });
+        });
+    </script>
+}

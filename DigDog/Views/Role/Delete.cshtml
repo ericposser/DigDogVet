@@ -1,0 +1,42 @@
+@model Microsoft.AspNetCore.Identity.IdentityRole
+@{
+    ViewData["Title"] = "Excluir Perfil";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5 text-danger">
+            <i class="cil-trash me-2"></i>Excluir Perfil
+        </strong>
+    </div>
+    <div class="card-body">
+
+        <div class="alert alert-danger border-0 shadow-sm mb-4">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="cil-warning fs-5"></i>
+                <strong>Atenção — esta ação não pode ser desfeita!</strong>
+            </div>
+            <ul class="mb-0 mt-2 small">
+                <li>O perfil <strong>@Model.Name</strong> será excluído permanentemente.</li>
+                <li>Todos os funcionários com este perfil perderão suas permissões de acesso imediatamente.</li>
+                <li>As permissões associadas a este perfil também serão removidas.</li>
+            </ul>
+        </div>
+
+        <dl class="row mb-0">
+            <dt class="col-sm-3 fw-semibold">Nome do Perfil</dt>
+            <dd class="col-sm-9">@Model.Name</dd>
+        </dl>
+
+        <div class="mt-4 pt-3 border-top d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger">
+                    <i class="cil-trash me-1"></i>Confirmar Exclusão
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>

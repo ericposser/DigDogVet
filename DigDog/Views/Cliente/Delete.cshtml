@@ -1,0 +1,56 @@
+@model DigDog.Models.Cliente
+@{
+    ViewData["Title"] = "Excluir Tutor";
+}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+        <strong class="fs-5 text-danger"><i class="cil-trash me-2"></i>Excluir Tutor</strong>
+    </div>
+
+    <div class="card-body">
+
+        <!-- Alerta de aviso -->
+        <div class="alert alert-danger border-0 shadow-sm mb-4">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="cil-warning"></i>
+                <strong>Atenção! Esta ação não pode ser desfeita.</strong>
+            </div>
+            <small>
+                Ao excluir o tutor <strong>@Model.Nome</strong>, todos os pets vinculados a ele
+                e seus respectivos históricos (consultas, vacinas, banho e tosa) serão
+                <strong>permanentemente removidos</strong>.
+            </small>
+        </div>
+
+        <!-- Dados do tutor -->
+        <dl class="row mb-0">
+            <dt class="col-sm-3 fw-semibold">Nome do Tutor</dt>
+            <dd class="col-sm-9">@Model.Nome</dd>
+
+            <dt class="col-sm-3 fw-semibold">Telefone / WhatsApp</dt>
+            <dd class="col-sm-9">@Model.Telefone</dd>
+
+            <dt class="col-sm-3 fw-semibold">E-mail</dt>
+            <dd class="col-sm-9">@(Model.Email ?? "—")</dd>
+
+            <dt class="col-sm-3 fw-semibold">Endereço</dt>
+            <dd class="col-sm-9">@(Model.Endereco ?? "—")</dd>
+        </dl>
+
+        <!-- Botões -->
+        <div class="mt-4 pt-3 border-top d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="cil-x me-1"></i> Cancelar
+            </a>
+            <form asp-action="Delete" asp-route-id="@ViewBag.IdCriptografado" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <button type="submit" class="btn btn-danger">
+                    <i class="cil-trash me-1"></i> Confirmar Exclusão
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>

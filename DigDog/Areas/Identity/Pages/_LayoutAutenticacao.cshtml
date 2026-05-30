@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-coreui-theme="auto">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+    <title>DigDogVet</title>
+
+    <!-- CoreUI via CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/@@coreui/coreui@5.6.1/dist/css/coreui.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@@coreui/icons@3.0.1/css/all.min.css" rel="stylesheet" />
+
+    <script>
+        (function () {
+            const temaSalvo = localStorage.getItem('coreui-theme') || 'auto';
+            if (temaSalvo === 'auto') {
+                const prefereDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-coreui-theme', prefereDark ? 'dark' : 'light');
+            } else {
+                document.documentElement.setAttribute('data-coreui-theme', temaSalvo);
+            }
+        })();
+    </script>
+</head>
+<body>
+@RenderBody()
+<script src="https://cdn.jsdelivr.net/npm/@@coreui/coreui@5.6.1/dist/js/coreui.bundle.min.js"></script>
+</body>
+</html>
