@@ -261,6 +261,12 @@ public class Program
             app.Urls.Add("http://0.0.0.0:80");
         }
         
+        using (var escopo = app.Services.CreateScope())
+        {
+            var db = escopo.ServiceProvider.GetRequiredService<Contexto>();
+            db.Database.Migrate();
+        }
+        
         app.Run();
     }
 }
