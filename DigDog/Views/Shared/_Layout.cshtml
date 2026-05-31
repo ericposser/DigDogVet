@@ -71,12 +71,13 @@
     <script>
         (function () {
             const temaSalvo = localStorage.getItem('coreui-theme') || 'auto';
-            if (temaSalvo === 'auto') {
-                const prefereDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                document.documentElement.setAttribute('data-coreui-theme', prefereDark ? 'dark' : 'light');
-            } else {
-                document.documentElement.setAttribute('data-coreui-theme', temaSalvo);
-            }
+            const prefereDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const tema = temaSalvo === 'auto' ? (prefereDark ? 'dark' : 'light') : temaSalvo;
+
+            document.documentElement.setAttribute('data-coreui-theme', tema);
+
+            // Aplica o fundo imediatamente no <html> para eliminar o flash
+            document.documentElement.style.backgroundColor = tema === 'dark' ? '#1c212b' : '#f3f4f7';
         })();
     </script>
     

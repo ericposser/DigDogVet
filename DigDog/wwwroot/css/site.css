@@ -1,9 +1,11 @@
+[data-coreui-theme="dark"] html,
 [data-coreui-theme="dark"] body,
 [data-coreui-theme="dark"] .wrapper,
 [data-coreui-theme="dark"] .body {
   background-color: #1c212b !important;
 }
 
+[data-coreui-theme="light"] html,
 [data-coreui-theme="light"] body,
 [data-coreui-theme="light"] .wrapper,
 [data-coreui-theme="light"] .body {
