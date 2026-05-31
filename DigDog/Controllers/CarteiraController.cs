@@ -151,9 +151,11 @@ public class CarteiraController : UtilController
             .Where(c => c.IdEmpresa == idEmpresa)
             .FirstOrDefaultAsync();
 
-        var nome = !string.IsNullOrWhiteSpace(empresa?.NomeEstabelecimento)
-            ? empresa.NomeEstabelecimento
-            : "DigDogVet";
+        var nome = !string.IsNullOrWhiteSpace(config?.NomeEstabelecimento)
+            ? config.NomeEstabelecimento
+            : !string.IsNullOrWhiteSpace(empresa?.NomeEstabelecimento)
+                ? empresa.NomeEstabelecimento
+                : "DigDogVet";
 
         return (nome, config?.FotoDados, config?.FotoMimeType);
     }
