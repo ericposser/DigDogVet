@@ -73,13 +73,22 @@
             const temaSalvo = localStorage.getItem('coreui-theme') || 'auto';
             const prefereDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             const tema = temaSalvo === 'auto' ? (prefereDark ? 'dark' : 'light') : temaSalvo;
-
             document.documentElement.setAttribute('data-coreui-theme', tema);
-
-            // Aplica o fundo imediatamente no <html> para eliminar o flash
             document.documentElement.style.backgroundColor = tema === 'dark' ? '#1c212b' : '#f3f4f7';
         })();
     </script>
+
+    <style>
+        html, body, .wrapper, .body {
+            background-color: #f3f4f7;
+        }
+        [data-coreui-theme="dark"] html,
+        [data-coreui-theme="dark"] body,
+        [data-coreui-theme="dark"] .wrapper,
+        [data-coreui-theme="dark"] .body {
+            background-color: #1c212b !important;
+        }
+    </style>
     
     <title>@ViewData["Title"] - @nomeEstabelecimento</title>
 
