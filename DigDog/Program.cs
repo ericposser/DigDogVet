@@ -61,8 +61,8 @@ public class Program
 
             opcoes.Cookie.HttpOnly     = true;
             opcoes.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-            opcoes.Cookie.SameSite     = SameSiteMode.Strict;
-            opcoes.Cookie.Name         = "__Host-DigDog";
+            opcoes.Cookie.SameSite     = SameSiteMode.Lax;
+            opcoes.Cookie.Name         = "DigDog.Auth";
             opcoes.ExpireTimeSpan      = TimeSpan.FromHours(8);
             opcoes.SlidingExpiration   = true;
 
