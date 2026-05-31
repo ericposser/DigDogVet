@@ -169,6 +169,15 @@ public class Program
 
         builder.Services.AddHttpClient<TrelloService>();
 
+        // ── Cultura pt-BR ──────────────────────────────────────────────────
+        var culturaInfo = new System.Globalization.CultureInfo("pt-BR");
+        var opcoesLocalizacao = new RequestLocalizationOptions
+        {
+            DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(culturaInfo),
+            SupportedCultures     = new[] { culturaInfo },
+            SupportedUICultures   = new[] { culturaInfo }
+        };
+        
         var app = builder.Build();
 
         // ── Pipeline HTTP ──────────────────────────────────────────────────
@@ -179,6 +188,7 @@ public class Program
         }
 
         app.UseHttpsRedirection();
+        app.UseRequestLocalization(opcoesLocalizacao);
 
         // ── Security Headers ───────────────────────────────────────────────
         // Antes de UseStaticFiles para cobrir também arquivos estáticos.
