@@ -61,9 +61,14 @@
                         </div>
 
                         <!-- Botão -->
+                        <!-- Botão -->
                         <div>
-                            <button class="btn btn-primary w-100" type="submit">
-                                <i class="cil-account-logout me-1"></i> Entrar
+                            <button class="btn btn-primary w-100" type="submit" id="btnEntrar">
+                                <span id="btnTexto"><i class="cil-account-logout me-1"></i> Entrar</span>
+                                <span id="btnCarregando" class="d-none">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Entrando...
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -92,5 +97,15 @@
             icone.classList.replace('cil-lock-unlocked', 'cil-lock-locked');
         }
     }
+
+    document.querySelector('form').addEventListener('submit', function () {
+        const btn       = document.getElementById('btnEntrar');
+        const texto     = document.getElementById('btnTexto');
+        const carregando = document.getElementById('btnCarregando');
+
+        btn.disabled = true;
+        texto.classList.add('d-none');
+        carregando.classList.remove('d-none');
+    });
 </script>
 
