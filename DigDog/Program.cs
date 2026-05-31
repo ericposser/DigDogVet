@@ -60,7 +60,7 @@ public class Program
             opcoes.AccessDeniedPath = "/Erro/AcessoNegado";
 
             opcoes.Cookie.HttpOnly     = true;
-            opcoes.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            opcoes.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
             opcoes.Cookie.SameSite     = SameSiteMode.Strict;
             opcoes.Cookie.Name         = "__Host-DigDog";
             opcoes.ExpireTimeSpan      = TimeSpan.FromHours(8);
@@ -165,7 +165,6 @@ public class Program
         {
             app.UseExceptionHandler("/Erro");
             app.UseStatusCodePagesWithReExecute("/Erro/{0}");
-            app.UseHttpsRedirection(); // ← só em produção
         }
 
         app.UseRequestLocalization(opcoesLocalizacao);
