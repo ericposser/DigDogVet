@@ -22,15 +22,7 @@
 
                     <form method="post" class="row gap-3" autocomplete="off">
                         @Html.AntiForgeryToken()
-
-                        <!-- Erros gerais -->
-                        @if (!ViewData.ModelState.IsValid)
-                        {
-                            <div class="alert alert-danger border-0 py-2 small">
-                                @Html.ValidationSummary(false)
-                            </div>
-                        }
-
+                        
                         <!-- E-mail -->
                         <div>
                             <label class="form-label" asp-for="Input.Email">E-mail</label>

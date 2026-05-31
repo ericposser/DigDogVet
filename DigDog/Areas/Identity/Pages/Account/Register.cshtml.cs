@@ -25,6 +25,7 @@ namespace DigDog.Areas.Identity.Pages.Account
         private readonly IEmailSender _emailSender;
         private readonly RoleManager<IdentityRole> _gerenciadorRole;
         private readonly DigDog.Data.Contexto _contexto;
+        private readonly IConfiguration _configuracao;
 
         public RegisterModel(
             UserManager<IdentityUser> userManager,
@@ -33,16 +34,18 @@ namespace DigDog.Areas.Identity.Pages.Account
             ILogger<RegisterModel> logger,
             IEmailSender emailSender,
             RoleManager<IdentityRole> gerenciadorRole,
-            DigDog.Data.Contexto contexto)
+            DigDog.Data.Contexto contexto,
+            IConfiguration configuracao)
         {
-            _userManager = userManager;
-            _userStore = userStore;
-            _emailStore = GetEmailStore();
-            _signInManager = signInManager;
-            _logger = logger;
-            _emailSender = emailSender;
-            _gerenciadorRole = gerenciadorRole;
-            _contexto = contexto;
+            _userManager      = userManager;
+            _userStore        = userStore;
+            _emailStore       = GetEmailStore();
+            _signInManager    = signInManager;
+            _logger           = logger;
+            _emailSender      = emailSender;
+            _gerenciadorRole  = gerenciadorRole;
+            _contexto         = contexto;
+            _configuracao     = configuracao;
         }
 
         [BindProperty]
@@ -59,12 +62,10 @@ namespace DigDog.Areas.Identity.Pages.Account
             [Display(Name = "E-mail")]
             public string Email { get; set; }
 
-            // ── NOVO ──────────────────────────────────────────────────────
             [Required(ErrorMessage = "O CPF é obrigatório.")]
             [StringLength(14, ErrorMessage = "CPF inválido.")]
             [Display(Name = "CPF")]
             public string Cpf { get; set; }
-            // ──────────────────────────────────────────────────────────────
 
             [Required(ErrorMessage = "A senha é obrigatória.")]
             [StringLength(100, ErrorMessage = "A senha deve ter no mínimo {2} e no máximo {1} caracteres.", MinimumLength = 6)]
@@ -76,10 +77,21 @@ namespace DigDog.Areas.Identity.Pages.Account
             [Display(Name = "Confirmar senha")]
             [Compare("Password", ErrorMessage = "A senha e a confirmação não coincidem.")]
             public string ConfirmPassword { get; set; }
+
+            [Required(ErrorMessage = "O código de convite é obrigatório.")]
+            [Display(Name = "Código de Convite")]
+            public string CodigoConvite { get; set; }
         }
 
         public async Task OnGetAsync(string returnUrl = null)
         {
+            // Redireciona para login se acessar sem o parâmetro de convite
+            if (!Request.Query.ContainsKey("convite"))
+            {
+                Response.Redirect("/Identity/Account/Login");
+                return;
+            }
+
             ReturnUrl = returnUrl;
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
         }
@@ -88,6 +100,14 @@ namespace DigDog.Areas.Identity.Pages.Account
         {
             returnUrl ??= Url.Content("~/");
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+
+            // ── Valida código de convite antes de qualquer coisa ───────────
+            var codigoValido = _configuracao["Registro:CodigoConvite"];
+            if (Input.CodigoConvite != codigoValido)
+            {
+                ModelState.AddModelError(nameof(Input.CodigoConvite), "Código de convite inválido.");
+                return Page();
+            }
 
             if (ModelState.IsValid)
             {
@@ -104,14 +124,12 @@ namespace DigDog.Areas.Identity.Pages.Account
 
                     await GarantirAdminAsync(usuario);
 
-                    // ── NOVO: salva CPF como claim ─────────────────────────
                     var cpfLimpo = new string(Input.Cpf.Where(char.IsDigit).ToArray());
                     await _userManager.AddClaimAsync(usuario,
                         new System.Security.Claims.Claim("Cpf", cpfLimpo));
-                    // ──────────────────────────────────────────────────────
 
                     var userId = await _userManager.GetUserIdAsync(usuario);
-                    var code = await _userManager.GenerateEmailConfirmationTokenAsync(usuario);
+                    var code   = await _userManager.GenerateEmailConfirmationTokenAsync(usuario);
                     code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
                     var callbackUrl = Url.Page(
                         "/Account/ConfirmEmail",
@@ -173,16 +191,14 @@ namespace DigDog.Areas.Identity.Pages.Account
                 IdUsuario = usuario.Id
             });
 
-            // ── Assinatura trial de 30 dias ───────────────────────────────────
             var agora = DateTime.Now;
             _contexto.Assinatura.Add(new DigDog.Models.Assinatura
             {
-                IdEmpresa      = empresaSalva.Id,
-                DataInicio     = agora,
-                DataExpiracao  = agora.AddDays(30),
-                Ativa          = true
+                IdEmpresa     = empresaSalva.Id,
+                DataInicio    = agora,
+                DataExpiracao = agora.AddDays(30),
+                Ativa         = true
             });
-            // ─────────────────────────────────────────────────────────────────
 
             await _contexto.SaveChangesAsync();
         }

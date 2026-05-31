@@ -64,10 +64,22 @@
                             <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
                         </div>
 
+                        <!-- Código de Convite -->
+                        <div>
+                            <label class="form-label" asp-for="Input.CodigoConvite">Código de Convite</label>
+                            <input class="form-control" asp-for="Input.CodigoConvite"
+                                   type="password" placeholder="Código fornecido pelo administrador" autocomplete="off" />
+                            <span asp-validation-for="Input.CodigoConvite" class="text-danger small"></span>
+                        </div>
+
                         <!-- Botão -->
                         <div>
-                            <button class="btn btn-primary w-100" type="submit">
-                                <i class="cil-user-follow me-1"></i> Criar conta
+                            <button class="btn btn-primary w-100" type="submit" id="btnCriarConta">
+                                <span id="btnTexto"><i class="cil-user-follow me-1"></i> Criar conta</span>
+                                <span id="btnCarregando" class="d-none">
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    Criando...
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -83,3 +95,15 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.querySelector('form').addEventListener('submit', function (e) {
+        if (!this.checkValidity()) return;
+        const btn        = document.getElementById('btnCriarConta');
+        const texto      = document.getElementById('btnTexto');
+        const carregando = document.getElementById('btnCarregando');
+        btn.disabled = true;
+        texto.classList.add('d-none');
+        carregando.classList.remove('d-none');
+    });
+</script>
