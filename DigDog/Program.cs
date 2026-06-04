@@ -153,7 +153,7 @@ public class Program
         };
 
         // ── Porta para produção (Square Cloud) ────────────────────────────
-        if (!builder.Environment.IsDevelopment())
+        if (Environment.GetEnvironmentVariable("SQUARE_CLOUD") == "true")
         {
             builder.WebHost.UseUrls("http://0.0.0.0:80");
         }
