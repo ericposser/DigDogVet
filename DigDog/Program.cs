@@ -1,6 +1,7 @@
 using DigDog.Data;
 using DigDog.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -35,6 +36,14 @@ public class Program
         builder.Services.AddHostedService<LimpezaLogService>();
         builder.Services.AddScoped<CaktoWebhookService>();
 
+        // ── Proxy reverso (Square Cloud termina HTTPS na borda) ───────────
+        builder.Services.Configure<ForwardedHeadersOptions>(opcoes =>
+        {
+            opcoes.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            opcoes.KnownNetworks.Clear();
+            opcoes.KnownProxies.Clear();
+        });
+
         // ── Identity ───────────────────────────────────────────────────────
         builder.Services.AddDefaultIdentity<IdentityUser>(opcoes =>
         {
@@ -61,8 +70,8 @@ public class Program
 
             opcoes.Cookie.HttpOnly     = true;
             opcoes.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-            opcoes.Cookie.SameSite     = SameSiteMode.Strict;
-            opcoes.Cookie.Name         = "__Host-DigDog";
+            opcoes.Cookie.SameSite     = SameSiteMode.Lax;          // ← Strict quebrava redirects após login
+            opcoes.Cookie.Name         = "DigDog.Auth";              // ← __Host- exige HTTPS direto no app
             opcoes.ExpireTimeSpan      = TimeSpan.FromHours(8);
             opcoes.SlidingExpiration   = true;
 
@@ -74,55 +83,63 @@ public class Program
             opcoes.ValidationInterval = TimeSpan.FromMinutes(30);
         });
 
-        // ── Rate Limiting ──────────────────────────────────────────────────
+        // ── Rate Limiting (TODOS particionados por IP) ─────────────────────
         builder.Services.AddRateLimiter(opcoes =>
         {
             opcoes.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-            opcoes.AddFixedWindowLimiter("login", limiter =>
-            {
-                limiter.Window               = TimeSpan.FromMinutes(5);
-                limiter.PermitLimit          = 5;
-                limiter.QueueLimit           = 0;
-                limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-            });
+            // Tentativas de login por IP — apenas POST do Login deveria usar isto
+            opcoes.AddPolicy("login", httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        Window      = TimeSpan.FromMinutes(5),
+                        PermitLimit = 10,
+                        QueueLimit  = 0
+                    }));
 
-            opcoes.AddSlidingWindowLimiter("publica", limiter =>
-            {
-                limiter.Window               = TimeSpan.FromMinutes(1);
-                limiter.PermitLimit          = 30;
-                limiter.SegmentsPerWindow    = 6;
-                limiter.QueueLimit           = 0;
-                limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-            });
+            opcoes.AddPolicy("publica", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+                    factory: _ => new SlidingWindowRateLimiterOptions
+                    {
+                        Window            = TimeSpan.FromMinutes(1),
+                        PermitLimit       = 30,
+                        SegmentsPerWindow = 6,
+                        QueueLimit        = 0
+                    }));
 
-            opcoes.AddFixedWindowLimiter("webhook", limiter =>
-            {
-                limiter.Window               = TimeSpan.FromMinutes(1);
-                limiter.PermitLimit          = 60;
-                limiter.QueueLimit           = 5;
-                limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-            });
+            opcoes.AddPolicy("webhook", httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        Window      = TimeSpan.FromMinutes(1),
+                        PermitLimit = 60,
+                        QueueLimit  = 5
+                    }));
 
-            opcoes.AddSlidingWindowLimiter("geral", limiter =>
-            {
-                limiter.Window               = TimeSpan.FromMinutes(1);
-                limiter.PermitLimit          = 120;
-                limiter.SegmentsPerWindow    = 6;
-                limiter.QueueLimit           = 10;
-                limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-            });
+            opcoes.AddPolicy("geral", httpContext =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+                    factory: _ => new SlidingWindowRateLimiterOptions
+                    {
+                        Window            = TimeSpan.FromMinutes(1),
+                        PermitLimit       = 120,
+                        SegmentsPerWindow = 6,
+                        QueueLimit        = 10
+                    }));
 
             opcoes.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
                 RateLimitPartition.GetSlidingWindowLimiter(
                     partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
                     factory: _ => new SlidingWindowRateLimiterOptions
                     {
-                        Window               = TimeSpan.FromMinutes(1),
-                        PermitLimit          = 200,
-                        SegmentsPerWindow    = 6,
-                        QueueLimit           = 0,
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                        Window            = TimeSpan.FromMinutes(1),
+                        PermitLimit       = 200,
+                        SegmentsPerWindow = 6,
+                        QueueLimit        = 0
                     }));
         });
 
@@ -152,7 +169,7 @@ public class Program
             SupportedUICultures   = new[] { culturaInfo }
         };
 
-        // ── Porta para produção (Square Cloud) ────────────────────────────
+        // ── Porta para Square Cloud ───────────────────────────────────────
         if (Environment.GetEnvironmentVariable("SQUARE_CLOUD") == "true")
         {
             builder.WebHost.UseUrls("http://0.0.0.0:80");
@@ -161,24 +178,32 @@ public class Program
         var app = builder.Build();
 
         // ── Pipeline HTTP ──────────────────────────────────────────────────
+
+        // 1º de tudo: respeitar headers do proxy do Square Cloud
+        app.UseForwardedHeaders();
+
         if (!app.Environment.IsDevelopment())
         {
             app.UseExceptionHandler("/Erro");
-            app.UseStatusCodePagesWithReExecute("/Erro/{0}");
+            app.UseStatusCodePagesWithReExecute("/Erro", "?codigo={0}");
         }
 
-        app.UseHttpsRedirection();
+        // HttpsRedirection só em DEV — em produção o Square Cloud termina HTTPS
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseHttpsRedirection();
+        }
+
         app.UseRequestLocalization(opcoesLocalizacao);
 
         // ── Security Headers ───────────────────────────────────────────────
         app.Use(async (contexto, proximo) =>
         {
             var headers = contexto.Response.Headers;
-
-            headers["X-Frame-Options"]           = "SAMEORIGIN";
-            headers["X-Content-Type-Options"]    = "nosniff";
-            headers["Referrer-Policy"]           = "strict-origin-when-cross-origin";
-            headers["Permissions-Policy"]        = "camera=(), microphone=(), geolocation=()";
+            headers["X-Frame-Options"]        = "SAMEORIGIN";
+            headers["X-Content-Type-Options"] = "nosniff";
+            headers["Referrer-Policy"]        = "strict-origin-when-cross-origin";
+            headers["Permissions-Policy"]     = "camera=(), microphone=(), geolocation=()";
 
             if (!app.Environment.IsDevelopment())
                 headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
@@ -190,37 +215,26 @@ public class Program
                 "font-src 'self' data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://cdn.datatables.net https://unpkg.com; " +
                 "img-src 'self' data: blob: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
                 "connect-src 'self' ws: wss: https://cdn.datatables.net https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
-                "frame-ancestors 'self'; " +
-                "base-uri 'self'; " +
-                "form-action 'self';";
+                "frame-ancestors 'self'; base-uri 'self'; form-action 'self';";
 
             headers.Remove("Server");
             headers.Remove("X-Powered-By");
-
             await proximo(contexto);
         });
 
         app.UseStaticFiles();
         app.UseRouting();
-
         app.UseRateLimiter();
-
         app.UseAuthentication();
         app.UseAuthorization();
 
         app.UseMiddleware<DigDog.Middlewares.AssinaturaMiddleware>();
 
-        // ── Rotas ──────────────────────────────────────────────────────────
+        // ── Rotas (uma rota só pra controllers) ────────────────────────────
         app.MapControllerRoute(
             name: "default",
             pattern: "{controller=Home}/{action=Index}/{id?}")
             .RequireRateLimiting("geral");
-
-        app.MapControllerRoute(
-            name: "publico",
-            pattern: "{controller}/{action=Index}/{id?}")
-            .RequireRateLimiting("publica")
-            .WithMetadata(new AllowAnonymousAttribute());
 
         app.MapHub<DigDog.Hubs.KanbanHub>("/kanbanHub")
             .RequireRateLimiting("publica");
@@ -228,8 +242,9 @@ public class Program
         app.MapHub<DigDog.Hubs.AssinaturaHub>("/assinaturaHub")
             .RequireRateLimiting("geral");
 
+        // Razor Pages com limite "geral" — login específico pode ser apertado depois
         app.MapRazorPages()
-            .RequireRateLimiting("login");
+            .RequireRateLimiting("geral");
 
         using (var escopo = app.Services.CreateScope())
         {
