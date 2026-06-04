@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Controllers;
 
@@ -12,16 +13,23 @@ public class UtilController : Controller
 {
     protected readonly UserManager<IdentityUser> _gerenciadorUsuario;
     protected readonly Contexto _contextoBase;
+    protected readonly IMemoryCache _cacheBase;
     private readonly IDataProtector _protetor;
+
+    // TTLs do cache
+    private static readonly TimeSpan TtlIdEmpresa       = TimeSpan.FromHours(1);
+    private static readonly TimeSpan TtlInfoUsuario     = TimeSpan.FromMinutes(10);
 
     public UtilController(
         UserManager<IdentityUser> gerenciadorUsuario,
         IDataProtectionProvider provedorProtecao,
-        Contexto contexto)
+        Contexto contexto,
+        IMemoryCache cache)
     {
         _gerenciadorUsuario = gerenciadorUsuario;
         _protetor           = provedorProtecao.CreateProtector("DigDog.IdProtecao");
         _contextoBase       = contexto;
+        _cacheBase          = cache;
     }
 
     // ── Identidade do usuário ──────────────────────────────────────────────
@@ -32,21 +40,33 @@ public class UtilController : Controller
                ?? throw new InvalidOperationException("Usuário não autenticado.");
     }
 
+    /// <summary>
+    /// Retorna o IdEmpresa do usuário logado.
+    /// Cacheado por 1 hora — o vínculo Empresa↔Usuário praticamente não muda.
+    /// Quando o usuário é removido, a chave expira naturalmente; ele não consegue mais logar.
+    /// </summary>
     protected async Task<int> ObterIdEmpresaAsync()
     {
-        var idUsuario = ObterIdUsuario();
-        var vinculo   = await _contextoBase.EmpresaUsuario
-            .FirstOrDefaultAsync(eu => eu.IdUsuario == idUsuario);
+        var idUsuario  = ObterIdUsuario();
+        var chaveCache = $"idEmpresa:{idUsuario}";
 
-        if (vinculo == null)
+        if (_cacheBase.TryGetValue<int>(chaveCache, out var idEmpresaCache))
+            return idEmpresaCache;
+
+        // Projeção: não carrega entidade inteira, só o IdEmpresa
+        var idEmpresa = await _contextoBase.EmpresaUsuario
+            .AsNoTracking()
+            .Where(eu => eu.IdUsuario == idUsuario)
+            .Select(eu => (int?)eu.IdEmpresa)
+            .FirstOrDefaultAsync();
+
+        if (idEmpresa == null)
             throw new InvalidOperationException("Usuário não está vinculado a nenhuma empresa.");
 
-        return vinculo.IdEmpresa;
+        _cacheBase.Set(chaveCache, idEmpresa.Value, TtlIdEmpresa);
+        return idEmpresa.Value;
     }
 
-    // ── Endpoint JSON exposto via GET ──────────────────────────────────────
-    // Requer autenticação explícita e rate limit "geral".
-    // Usado pelo frontend para obter o idEmpresa via fetch.
     [HttpGet]
     [Microsoft.AspNetCore.Authorization.Authorize]
     [EnableRateLimiting("geral")]
@@ -56,19 +76,86 @@ public class UtilController : Controller
         return Json(new { idEmpresa });
     }
 
+    /// <summary>
+    /// Retorna o email (UserName) do usuário logado. Cacheado por 10 minutos.
+    /// </summary>
     protected async Task<string> ObterEmailUsuario()
     {
-        var id      = ObterIdUsuario();
-        var usuario = await _gerenciadorUsuario.FindByIdAsync(id);
-        return usuario?.UserName ?? "Não identificado";
+        var idUsuario  = ObterIdUsuario();
+        var chaveCache = $"emailUsuario:{idUsuario}";
+
+        if (_cacheBase.TryGetValue<string>(chaveCache, out var emailCache) && emailCache != null)
+            return emailCache;
+
+        // Projeção direta na tabela em vez de UserManager.FindByIdAsync
+        var email = await _contextoBase.Users
+            .AsNoTracking()
+            .Where(u => u.Id == idUsuario)
+            .Select(u => u.UserName)
+            .FirstOrDefaultAsync()
+            ?? "Não identificado";
+
+        _cacheBase.Set(chaveCache, email, TtlInfoUsuario);
+        return email;
+    }
+
+    /// <summary>
+    /// Retorna o NomeFuncionario (claim) ou o email como fallback. Cacheado por 10 minutos.
+    /// Quando o Admin edita um funcionário, a chave deve ser invalidada manualmente
+    /// (ver UsuarioController.Edit).
+    /// </summary>
+    protected async Task<string> ObterNomeFuncionarioAsync()
+    {
+        var idUsuario  = ObterIdUsuario();
+        var chaveCache = $"nomeFuncionario:{idUsuario}";
+
+        if (_cacheBase.TryGetValue<string>(chaveCache, out var nomeCache) && nomeCache != null)
+            return nomeCache;
+
+        // Uma única query — JOIN entre Users e UserClaims com projeção
+        var resultado = await (
+            from u in _contextoBase.Users.AsNoTracking()
+            where u.Id == idUsuario
+            select new
+            {
+                Email = u.UserName,
+                Nome  = _contextoBase.UserClaims
+                    .Where(c => c.UserId == idUsuario && c.ClaimType == "NomeFuncionario")
+                    .Select(c => c.ClaimValue)
+                    .FirstOrDefault()
+            }
+        ).FirstOrDefaultAsync();
+
+        var nomeFinal = !string.IsNullOrWhiteSpace(resultado?.Nome)
+            ? resultado.Nome
+            : resultado?.Email ?? "Desconhecido";
+
+        _cacheBase.Set(chaveCache, nomeFinal, TtlInfoUsuario);
+        return nomeFinal;
+    }
+
+    /// <summary>
+    /// Invalida os caches de informações do usuário.
+    /// Use quando atualizar email, telefone ou claim NomeFuncionario de um funcionário.
+    /// </summary>
+    protected void InvalidarCacheUsuario(string idUsuario)
+    {
+        _cacheBase.Remove($"emailUsuario:{idUsuario}");
+        _cacheBase.Remove($"nomeFuncionario:{idUsuario}");
+    }
+
+    /// <summary>
+    /// Invalida o cache de vínculo Empresa↔Usuário.
+    /// Use ao remover um funcionário.
+    /// </summary>
+    protected void InvalidarCacheIdEmpresa(string idUsuario)
+    {
+        _cacheBase.Remove($"idEmpresa:{idUsuario}");
     }
 
     // ── Limpeza de ModelState ──────────────────────────────────────────────
 
-    protected void RemoverValidacaoEmpresa()
-    {
-        ModelState.Remove("IdEmpresa");
-    }
+    protected void RemoverValidacaoEmpresa() => ModelState.Remove("IdEmpresa");
 
     protected void RemoverValidacaoUsuario()
     {
@@ -111,39 +198,14 @@ public class UtilController : Controller
         }
     }
 
-    // ── ViewBag para as views ──────────────────────────────────────────────
-
     public override void OnActionExecuted(ActionExecutedContext context)
     {
         base.OnActionExecuted(context);
         ViewBag.CriptografarId = (Func<int, string>)(id => CriptografarId(id));
     }
 
-    // ── Informações do funcionário ─────────────────────────────────────────
-
-    protected async Task<string> ObterNomeFuncionarioAsync()
-    {
-        var idUsuario = ObterIdUsuario();
-        var usuario   = await _gerenciadorUsuario.FindByIdAsync(idUsuario);
-        if (usuario == null) return "Desconhecido";
-
-        var claims = await _gerenciadorUsuario.GetClaimsAsync(usuario);
-        var nome   = claims.FirstOrDefault(c => c.Type == "NomeFuncionario")?.Value;
-
-        return !string.IsNullOrWhiteSpace(nome) ? nome : usuario.Email ?? "Desconhecido";
-    }
-
     // ── Helpers de segurança reutilizáveis ─────────────────────────────────
 
-    /// <summary>
-    /// Valida se um texto enviado pelo usuário não excede o tamanho máximo permitido.
-    /// Deve ser chamado em actions que recebem campos de texto livre (observações, descrições, etc.)
-    /// antes de persistir no banco, evitando payloads gigantes.
-    /// </summary>
-    /// <param name="nomeCampo">Nome do campo para a mensagem de erro no ModelState.</param>
-    /// <param name="valor">Valor recebido.</param>
-    /// <param name="tamanhoMaximo">Limite de caracteres (padrão: 2000).</param>
-    /// <returns>true se válido, false se excede o limite (e adiciona erro ao ModelState).</returns>
     protected bool ValidarTamanhoTexto(string nomeCampo, string? valor, int tamanhoMaximo = 2000)
     {
         if (valor != null && valor.Length > tamanhoMaximo)
@@ -155,18 +217,10 @@ public class UtilController : Controller
         return true;
     }
 
-    /// <summary>
-    /// Verifica se um token anônimo recebido em rotas públicas tem formato mínimo válido,
-    /// evitando processamento desnecessário (hash SHA-256, consulta ao banco, etc.)
-    /// com entradas obviamente inválidas ou muito longas.
-    /// Um GUID padrão tem 36 caracteres; aceitamos até 128 como margem.
-    /// </summary>
     protected bool TokenPublicoValido(string? token)
     {
         if (string.IsNullOrWhiteSpace(token)) return false;
         if (token.Length > 128)               return false;
-
-        // Aceita apenas caracteres de GUID (hex + hífens)
         foreach (var c in token)
         {
             if (!char.IsAsciiLetterOrDigit(c) && c != '-') return false;

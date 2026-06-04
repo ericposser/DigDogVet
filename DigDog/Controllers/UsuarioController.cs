@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Controllers;
 
@@ -23,8 +24,9 @@ public class UsuarioController : UtilController
         IDataProtectionProvider provedorProtecao,
         Contexto contexto,
         RoleManager<IdentityRole> gerenciadorRole,
-        PermissaoService permissaoService)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        PermissaoService permissaoService,
+        IMemoryCache cache)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _gerenciadorRole         = gerenciadorRole;
         _permissaoService        = permissaoService;
@@ -36,8 +38,8 @@ public class UsuarioController : UtilController
         var idUsuarioAdmin = ObterIdUsuario();
         var idEmpresa      = await ObterIdEmpresaAsync();
 
-        // Busca os IDs dos funcionários da empresa (excluindo o Admin logado)
         var idsVinculos = await _contextoBase.EmpresaUsuario
+            .AsNoTracking()
             .Where(eu => eu.IdEmpresa == idEmpresa && eu.IdUsuario != idUsuarioAdmin)
             .Select(eu => eu.IdUsuario)
             .ToListAsync();
@@ -45,50 +47,42 @@ public class UsuarioController : UtilController
         if (!idsVinculos.Any())
             return View(new List<UsuarioRoleViewModel>());
 
-        // ── Carrega tudo em lotes — sem N+1 ───────────────────────────────
+        // ── 3 queries totais, independente do número de usuários ─────────
 
-        // 1. Todos os usuários de uma vez via tabela do Identity
+        // 1. Dados dos usuários (Email, PhoneNumber)
         var usuarios = await _contextoBase.Users
+            .AsNoTracking()
             .Where(u => idsVinculos.Contains(u.Id))
+            .Select(u => new { u.Id, u.Email, u.PhoneNumber })
             .ToListAsync();
 
-        // 2. Todas as roles de uma vez (AspNetUserRoles JOIN AspNetRoles)
-        var rolesDoUsuarios = new Dictionary<string, string?>(); // idUsuario → nomeRole
-        foreach (var usuario in usuarios)
-        {
-            var roles = await _gerenciadorUsuarioLocal.GetRolesAsync(usuario);
-            rolesDoUsuarios[usuario.Id] = roles.FirstOrDefault();
-        }
+        // 2. JOIN UserRoles × Roles — uma query só pra todos os usuários
+        var rolesPorUsuario = await (
+            from ur in _contextoBase.UserRoles.AsNoTracking()
+            join r  in _contextoBase.Roles.AsNoTracking()
+                on ur.RoleId equals r.Id
+            where idsVinculos.Contains(ur.UserId)
+            select new { ur.UserId, NomeRole = r.Name, IdRole = r.Id }
+        ).ToDictionaryAsync(x => x.UserId, x => new { x.NomeRole, x.IdRole });
 
-        // 3. Todas as roles necessárias de uma vez
-        var nomesRolesUsadas = rolesDoUsuarios.Values
-            .Where(r => r != null).Distinct().ToList();
-        var rolesObjs = await _gerenciadorRole.Roles
-            .Where(r => nomesRolesUsadas.Contains(r.Name!))
-            .ToDictionaryAsync(r => r.Name!, r => r);
-
-        // 4. Todas as claims de uma vez via tabela UserClaims
-        var claimsDoUsuarios = await _contextoBase.UserClaims
+        // 3. Claims "NomeFuncionario" de todos de uma vez
+        var nomesFuncionario = await _contextoBase.UserClaims
+            .AsNoTracking()
             .Where(uc => idsVinculos.Contains(uc.UserId) && uc.ClaimType == "NomeFuncionario")
             .ToDictionaryAsync(uc => uc.UserId, uc => uc.ClaimValue);
 
-        // 5. Telefones já estão em AspNetUsers (PhoneNumber) — carregados no passo 1
-
-        // ── Monta a lista ──────────────────────────────────────────────────
-        var lista = usuarios.Select(usuario =>
+        var lista = usuarios.Select(u =>
         {
-            var nomeRole = rolesDoUsuarios.GetValueOrDefault(usuario.Id);
-            var roleObj  = nomeRole != null && rolesObjs.TryGetValue(nomeRole, out var r) ? r : null;
-
+            var info = rolesPorUsuario.GetValueOrDefault(u.Id);
             return new UsuarioRoleViewModel
             {
-                IdUsuario = usuario.Id,
-                Email     = usuario.Email!,
-                Nome      = claimsDoUsuarios.GetValueOrDefault(usuario.Id),
-                NomeRole  = nomeRole,
-                IdRole    = roleObj?.Id,
-                EhAdmin   = nomeRole == "Admin",
-                Telefone  = usuario.PhoneNumber
+                IdUsuario = u.Id,
+                Email     = u.Email!,
+                Nome      = nomesFuncionario.GetValueOrDefault(u.Id),
+                NomeRole  = info?.NomeRole,
+                IdRole    = info?.IdRole,
+                EhAdmin   = info?.NomeRole == "Admin",
+                Telefone  = u.PhoneNumber
             };
         }).OrderBy(u => u.Email).ToList();
 
@@ -177,7 +171,7 @@ public class UsuarioController : UtilController
             ? await _gerenciadorRole.FindByNameAsync(nomeRoleAtual)
             : null;
 
-        var claims   = await _gerenciadorUsuarioLocal.GetClaimsAsync(usuario);
+        var claims    = await _gerenciadorUsuarioLocal.GetClaimsAsync(usuario);
         var nomeAtual = claims.FirstOrDefault(c => c.Type == "NomeFuncionario")?.Value;
 
         var modelo = new UsuarioFormViewModel
@@ -250,6 +244,13 @@ public class UsuarioController : UtilController
             }
         }
 
+        // ─── INVALIDAR CACHES DO USUÁRIO ALTERADO ───────────────────────────
+        // Nome + email (vem de UtilController, método herdado)
+        InvalidarCacheUsuario(id);
+
+        // Permissões + flag ehAdmin (vem de PermissaoService)
+        _permissaoService.InvalidarCacheUsuario(id);
+        
         DefinirToast("Funcionário atualizado com sucesso!", "warning");
         return RedirectToAction(nameof(Index));
     }
@@ -301,8 +302,6 @@ public class UsuarioController : UtilController
         return RedirectToAction(nameof(Index));
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────
-
     private async Task CarregarRoles(string? idSelecionado = null)
     {
         var roles = await _permissaoService.ListarRolesCustomizadasAsync();
@@ -311,5 +310,6 @@ public class UsuarioController : UtilController
 
     private async Task<bool> UsuarioPertenceEmpresa(string idUsuario, int idEmpresa) =>
         await _contextoBase.EmpresaUsuario
+            .AsNoTracking()
             .AnyAsync(eu => eu.IdUsuario == idUsuario && eu.IdEmpresa == idEmpresa);
 }

@@ -7,6 +7,7 @@ using DigDog.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Services;
 
@@ -17,37 +18,38 @@ public class CaktoWebhookService
     private readonly IConfiguration _configuracao;
     private readonly ILogger<CaktoWebhookService> _logger;
     private readonly IHubContext<AssinaturaHub> _hubAssinatura;
+    private readonly IMemoryCache _cache;
 
     public CaktoWebhookService(
         Contexto contexto,
         UserManager<IdentityUser> gerenciadorUsuario,
         IConfiguration configuracao,
         ILogger<CaktoWebhookService> logger,
-        IHubContext<AssinaturaHub> hubAssinatura)
+        IHubContext<AssinaturaHub> hubAssinatura,
+        IMemoryCache cache)
     {
         _contexto           = contexto;
         _gerenciadorUsuario = gerenciadorUsuario;
         _configuracao       = configuracao;
         _logger             = logger;
         _hubAssinatura      = hubAssinatura;
+        _cache              = cache;
     }
 
     public bool AssinaturaValida(IHeaderDictionary headers, string bodyBruto)
     {
+        // ... (sem mudanças) ...
         var chaveSecreta = _configuracao["Cakto:ChaveSecreta"] ?? "";
 
-        // Cakto envia o secret dentro do body JSON
         try
         {
             var doc    = JsonDocument.Parse(bodyBruto);
             var secret = ObterString(doc.RootElement, "secret");
-
             if (!string.IsNullOrWhiteSpace(secret))
                 return secret == chaveSecreta;
         }
         catch { }
 
-        // Fallback: validação por header HMAC
         var assinaturaHeader = headers["X-Cakto-Signature"].FirstOrDefault()
                             ?? headers["X-Webhook-Signature"].FirstOrDefault()
                             ?? headers["X-Signature"].FirstOrDefault();
@@ -148,6 +150,10 @@ public class CaktoWebhookService
         }
 
         await _contexto.SaveChangesAsync();
+
+        // ─── INVALIDA o cache do middleware ───────────────────────────────
+        _cache.Remove($"assinatura-status:{idEmpresa}");
+
         _logger.LogInformation("Assinatura ativada/renovada para empresa {IdEmpresa}.", idEmpresa);
         await _hubAssinatura.Clients
             .Group($"empresa-{idEmpresa}")
@@ -165,43 +171,35 @@ public class CaktoWebhookService
 
         assinatura.Ativa = false;
         await _contexto.SaveChangesAsync();
+
+        // ─── INVALIDA o cache do middleware ───────────────────────────────
+        _cache.Remove($"assinatura-status:{idEmpresa}");
+
         _logger.LogInformation("Assinatura desativada para empresa {IdEmpresa}.", idEmpresa);
     }
 
-    /// <summary>
-    /// Localiza a empresa pelo e-mail ou CPF do comprador.
-    ///
-    /// Busca por e-mail usa o índice do Identity (FindByEmailAsync) — O(1).
-    ///
-    /// Busca por CPF: o CPF é armazenado como claim "Cpf" na tabela
-    /// AspNetUserClaims. Em vez de carregar todos os usuários em memória
-    /// (.Users.ToList()), fazemos a query diretamente na tabela de claims
-    /// via _contexto, que é indexada e muito mais eficiente.
-    /// </summary>
     private async Task<int?> LocalizarEmpresaAsync(string? email, string? cpf)
     {
-        // ── 1. Busca por e-mail ────────────────────────────────────────────
         if (!string.IsNullOrWhiteSpace(email))
         {
             var usuarioPorEmail = await _gerenciadorUsuario.FindByEmailAsync(email);
             if (usuarioPorEmail != null)
             {
                 var vinculo = await _contexto.EmpresaUsuario
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(eu => eu.IdUsuario == usuarioPorEmail.Id);
                 if (vinculo != null) return vinculo.IdEmpresa;
             }
         }
 
-        // ── 2. Busca por CPF via tabela de claims (sem carregar tudo em memória) ──
         if (!string.IsNullOrWhiteSpace(cpf))
         {
             var cpfLimpo = new string(cpf.Where(char.IsDigit).ToArray());
 
             if (!string.IsNullOrWhiteSpace(cpfLimpo))
             {
-                // AspNetUserClaims é a tabela gerada pelo Identity para claims.
-                // A query é traduzida para SQL e executada no banco — não em memória.
                 var idUsuarioPorCpf = await _contexto.UserClaims
+                    .AsNoTracking()
                     .Where(uc => uc.ClaimType == "Cpf" && uc.ClaimValue == cpfLimpo)
                     .Select(uc => uc.UserId)
                     .FirstOrDefaultAsync();
@@ -209,6 +207,7 @@ public class CaktoWebhookService
                 if (idUsuarioPorCpf != null)
                 {
                     var vinculo = await _contexto.EmpresaUsuario
+                        .AsNoTracking()
                         .FirstOrDefaultAsync(eu => eu.IdUsuario == idUsuarioPorCpf);
                     if (vinculo != null) return vinculo.IdEmpresa;
                 }
@@ -218,14 +217,11 @@ public class CaktoWebhookService
         return null;
     }
 
+    // ... métodos auxiliares JSON sem mudanças ...
+
     private static string? ExtrairEmail(JsonElement raiz)
     {
-        var caminhos = new[]
-        {
-            "data.customer.email",
-            "customer.email",
-            "email"
-        };
+        var caminhos = new[] { "data.customer.email", "customer.email", "email" };
         return caminhos.Select(c => NavegaJson(raiz, c)).FirstOrDefault(v => v != null);
     }
 
@@ -246,13 +242,8 @@ public class CaktoWebhookService
     {
         var partes = caminho.Split('.');
         var atual  = elemento;
-
         foreach (var parte in partes)
-        {
-            if (!atual.TryGetProperty(parte, out atual))
-                return null;
-        }
-
+            if (!atual.TryGetProperty(parte, out atual)) return null;
         return atual.ValueKind == JsonValueKind.String ? atual.GetString() : null;
     }
 

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Controllers;
 
@@ -21,8 +22,9 @@ public class ConsultaController : UtilController
         Contexto contexto,
         UserManager<IdentityUser> gerenciadorUsuario,
         IDataProtectionProvider provedorProtecao,
-        LogService logService)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        LogService logService,
+        IMemoryCache cache)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _contexto   = contexto;
         _logService = logService;

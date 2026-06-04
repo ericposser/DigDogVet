@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -15,21 +16,22 @@ namespace DigDog.Controllers;
 [Authorize]
 public class ReceituarioController : UtilController
 {
-    // Máximo de medicamentos por receituário — evita payload bomb no gerador de PDF
     private const int MaxMedicamentosPorReceituario = 30;
 
     private readonly Contexto _contexto;
+    private readonly IMemoryCache _cache;
 
     public ReceituarioController(
         Contexto contexto,
         UserManager<IdentityUser> gerenciadorUsuario,
-        IDataProtectionProvider provedorProtecao)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        IDataProtectionProvider provedorProtecao,
+        IMemoryCache cache)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _contexto = contexto;
+        _cache    = cache;
     }
 
-    // ── GET: exibe o formulário vinculado a uma consulta ──────────────────
     [RequerPermissao(Permissao.ConsultasEditar)]
     public async Task<IActionResult> Criar(string idConsulta)
     {
@@ -39,6 +41,7 @@ public class ReceituarioController : UtilController
         var idEmpresa = await ObterIdEmpresaAsync();
 
         var consulta = await _contexto.Consulta
+            .AsNoTracking()
             .Include(c => c.Pet)
                 .ThenInclude(p => p!.Cliente)
             .Where(c => c.IdEmpresa == idEmpresa)
@@ -46,16 +49,15 @@ public class ReceituarioController : UtilController
 
         if (consulta == null) return NotFound();
 
-        var config  = await _contexto.Configuracao.FirstOrDefaultAsync(c => c.IdEmpresa == idEmpresa);
-        var empresa = await _contexto.Empresa.FirstOrDefaultAsync(e => e.Id == idEmpresa);
+        var dadosClinica = await ObterDadosClinicaCacheAsync(idEmpresa);
 
         var modelo = new Receituario
         {
             IdConsulta      = consulta.Id,
             IdEmpresa       = idEmpresa,
-            NomeClinica     = config?.NomeEstabelecimento ?? empresa?.NomeEstabelecimento ?? "DigDogVet",
-            TelefoneClinica = config?.Telefone,
-            EnderecoClinica = config?.Endereco,
+            NomeClinica     = dadosClinica.Nome,
+            TelefoneClinica = dadosClinica.Telefone,
+            EnderecoClinica = dadosClinica.Endereco,
             NomeTutor       = consulta.Pet?.Cliente?.Nome     ?? string.Empty,
             CpfTutor        = consulta.Pet?.Cliente?.Cpf,
             EnderecoTutor   = consulta.Pet?.Cliente?.Endereco ?? string.Empty,
@@ -67,15 +69,14 @@ public class ReceituarioController : UtilController
             CorCabecalho    = "#1a3c5e",
         };
 
-        ViewBag.LogoBase64 = config?.FotoDados != null
-            ? $"data:{config.FotoMimeType};base64,{Convert.ToBase64String(config.FotoDados)}"
+        ViewBag.LogoBase64 = dadosClinica.FotoBytes != null
+            ? $"data:{dadosClinica.FotoMime};base64,{Convert.ToBase64String(dadosClinica.FotoBytes)}"
             : null;
 
         ViewBag.IdConsultaCriptografado = idConsulta;
         return View(modelo);
     }
 
-    // ── POST: gera e devolve o PDF para download ──────────────────────────
     [HttpPost]
     [ValidateAntiForgeryToken]
     [RequerPermissao(Permissao.ConsultasEditar)]
@@ -88,27 +89,20 @@ public class ReceituarioController : UtilController
         [FromForm] List<string> medicamentoPosologia,
         [FromForm] List<string> medicamentoQuantidade)
     {
-        // Remove validações de campos que não vêm do formulário:
-        // Empresa e Consulta são propriedades de navegação (objetos complexos),
-        // IdConsulta vem criptografado como hidden field (int não vincula direto),
-        // MedicamentosJson é preenchido internamente — nunca pelo form.
         ModelState.Remove(nameof(modelo.Empresa));
         ModelState.Remove(nameof(modelo.Consulta));
         ModelState.Remove(nameof(modelo.IdConsulta));
         ModelState.Remove(nameof(modelo.MedicamentosJson));
 
-        // Limite de medicamentos — protege o gerador de PDF contra listas enormes
         if (medicamentoNome.Count > MaxMedicamentosPorReceituario)
             return BadRequest($"Máximo de {MaxMedicamentosPorReceituario} medicamentos por receituário.");
 
-        // Validação de tamanho dos campos do cabeçalho do receituário
         ValidarTamanhoTexto(nameof(modelo.NomeVeterinario), modelo.NomeVeterinario, 150);
         ValidarTamanhoTexto(nameof(modelo.Crmv),            modelo.Crmv,            30);
         ValidarTamanhoTexto(nameof(modelo.NomeTutor),       modelo.NomeTutor,       150);
         ValidarTamanhoTexto(nameof(modelo.NomeAnimal),      modelo.NomeAnimal,      100);
         ValidarTamanhoTexto(nameof(modelo.Observacoes),     modelo.Observacoes,     1000);
 
-        // Garante que a cor é um hex válido antes de passar ao gerador
         if (string.IsNullOrWhiteSpace(modelo.CorCabecalho) || !modelo.CorCabecalho.StartsWith('#'))
             modelo.CorCabecalho = "#1a3c5e";
 
@@ -122,7 +116,6 @@ public class ReceituarioController : UtilController
 
             medicamentos.Add(new MedicamentoPrescrito
             {
-                // Trunca cada campo de medicamento para evitar abuso no PDF
                 NomeMedicamento   = Truncar(medicamentoNome[i],                                      150),
                 Concentracao      = Truncar(i < medicamentoConcentracao.Count ? medicamentoConcentracao[i] : null, 100),
                 FormaFarmaceutica = Truncar(i < medicamentoForma.Count        ? medicamentoForma[i]         : null, 100),
@@ -134,17 +127,46 @@ public class ReceituarioController : UtilController
 
         modelo.Medicamentos = medicamentos;
 
-        var idEmpresa = await ObterIdEmpresaAsync();
-        var config    = await _contexto.Configuracao.FirstOrDefaultAsync(c => c.IdEmpresa == idEmpresa);
-        byte[]? logoBytes = config?.FotoDados;
+        var idEmpresa    = await ObterIdEmpresaAsync();
+        var dadosClinica = await ObterDadosClinicaCacheAsync(idEmpresa);
 
-        var pdfBytes    = GerarDocumentoPdf(modelo, logoBytes);
+        var pdfBytes    = GerarDocumentoPdf(modelo, dadosClinica.FotoBytes);
         var nomeArquivo = $"Receituario_{modelo.NomeAnimal}_{DateTime.Today:yyyyMMdd}.pdf";
 
         return File(pdfBytes, "application/pdf", nomeArquivo);
     }
 
-    // ── Geração do PDF ────────────────────────────────────────────────────
+    // ── Cache de 10 minutos: dados completos da clínica usados no PDF ────
+    private async Task<(string Nome, string? Telefone, string? Endereco, byte[]? FotoBytes, string? FotoMime)>
+        ObterDadosClinicaCacheAsync(int idEmpresa)
+    {
+        var chaveCache = $"clinica-pdf:{idEmpresa}";
+
+        if (_cache.TryGetValue<(string, string?, string?, byte[]?, string?)>(chaveCache, out var dadosCache))
+            return dadosCache;
+
+        var config = await _contexto.Configuracao
+            .AsNoTracking()
+            .Where(c => c.IdEmpresa == idEmpresa)
+            .Select(c => new { c.NomeEstabelecimento, c.Telefone, c.Endereco, c.FotoDados, c.FotoMimeType })
+            .FirstOrDefaultAsync();
+
+        var nomeEmpresa = await _contexto.Empresa
+            .AsNoTracking()
+            .Where(e => e.Id == idEmpresa)
+            .Select(e => e.NomeEstabelecimento)
+            .FirstOrDefaultAsync();
+
+        var nome = !string.IsNullOrWhiteSpace(config?.NomeEstabelecimento)
+            ? config.NomeEstabelecimento
+            : !string.IsNullOrWhiteSpace(nomeEmpresa) ? nomeEmpresa : "DigDogVet";
+
+        var resultado = (nome, config?.Telefone, config?.Endereco, config?.FotoDados, config?.FotoMimeType);
+        _cache.Set(chaveCache, resultado, TimeSpan.FromMinutes(10));
+        return resultado;
+    }
+
+    // ── Geração do PDF (sem mudanças) ────────────────────────────────────
     private static byte[] GerarDocumentoPdf(Receituario modelo, byte[]? logoBytes)
     {
         QuestPDF.Settings.License = LicenseType.Community;
@@ -336,13 +358,6 @@ public class ReceituarioController : UtilController
         }).GeneratePdf();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Trunca um campo de texto ao limite indicado.
-    /// Usado nos campos dos medicamentos antes de passar ao gerador de PDF,
-    /// garantindo que nenhum campo abusivamente longo seja processado.
-    /// </summary>
     private static string? Truncar(string? valor, int limite) =>
         valor != null && valor.Length > limite ? valor[..limite] : valor;
 

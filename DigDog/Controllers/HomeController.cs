@@ -25,7 +25,7 @@ public class HomeController : UtilController
         PermissaoService permissaoService,
         IDbContextFactory<Contexto> fabricaContexto,
         IMemoryCache cache)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _contexto         = contexto;
         _permissaoService = permissaoService;

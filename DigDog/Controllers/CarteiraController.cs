@@ -26,7 +26,7 @@ public class CarteiraController : UtilController
         IDataProtectionProvider provedorProtecao,
         LogService logService,
         IMemoryCache cache)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _contexto   = contexto;
         _logService = logService;

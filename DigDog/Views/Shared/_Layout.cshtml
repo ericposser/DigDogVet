@@ -1,61 +1,90 @@
 ﻿@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Caching.Memory
 @using DigDog.Data
 @using DigDog.Models
 @using DigDog.Services
 @inject UserManager<IdentityUser> UserManager
 @inject Contexto DbContext
 @inject PermissaoService PermissaoService
+@inject IMemoryCache Cache
 
 @{
     var nomeEstabelecimento = "DigDogVet";
-    byte[]? fotoBytes = null;
-    string? fotoMime  = "";
-    var ehAdmin = false;
-    var permissoesUsuario = new HashSet<Permissao>();
+    byte[]? fotoBytes       = null;
+    string? fotoMime        = "";
+    var ehAdmin             = false;
+    var permissoesUsuario   = new HashSet<Permissao>();
 
     if (User.Identity is { IsAuthenticated: true })
     {
         var userId = UserManager.GetUserId(User);
 
-        // Busca a empresa do usuário logado via EmpresaUsuario
-        var vinculo = userId != null
-            ? DbContext.EmpresaUsuario.FirstOrDefault(eu => eu.IdUsuario == userId)
-            : null;
-
-        if (vinculo != null)
+        if (userId != null)
         {
-            // Busca a configuração pela empresa
-            var config = DbContext.Configuracao
-                .FirstOrDefault(c => c.IdEmpresa == vinculo.IdEmpresa);
+            // ── 1. IdEmpresa (cache compartilhado com UtilController/AssinaturaMiddleware) ──
+            var chaveIdEmpresa = $"idEmpresa:{userId}";
+            int? idEmpresa     = null;
 
-            if (config != null)
+            if (Cache.TryGetValue<int>(chaveIdEmpresa, out var idCache))
             {
-                if (!string.IsNullOrWhiteSpace(config.NomeEstabelecimento))
-                    nomeEstabelecimento = config.NomeEstabelecimento;
-
-                fotoBytes = config.FotoDados;
-                fotoMime  = config.FotoMimeType;
+                idEmpresa = idCache;
             }
             else
             {
-                // Fallback: usa o nome direto da Empresa se ainda não tem Configuracao
-                var empresa = DbContext.Empresa
-                    .FirstOrDefault(e => e.Id == vinculo.IdEmpresa);
+                idEmpresa = await DbContext.EmpresaUsuario
+                    .AsNoTracking()
+                    .Where(eu => eu.IdUsuario == userId)
+                    .Select(eu => (int?)eu.IdEmpresa)
+                    .FirstOrDefaultAsync();
 
-                if (!string.IsNullOrWhiteSpace(empresa?.NomeEstabelecimento))
-                    nomeEstabelecimento = empresa.NomeEstabelecimento;
+                if (idEmpresa != null)
+                    Cache.Set(chaveIdEmpresa, idEmpresa.Value, TimeSpan.FromHours(1));
             }
-        }
 
-        ehAdmin = User.IsInRole("Admin");
-
-        // Carrega permissões apenas para não-admins
-        if (!ehAdmin && userId != null)
-        {
-            foreach (Permissao p in Enum.GetValues(typeof(Permissao)))
+            // ── 2. Estabelecimento (cache compartilhado com CarteiraController/StatusDiaController) ──
+            if (idEmpresa != null)
             {
-                var tem = await PermissaoService.UsuarioTemPermissaoAsync(userId, p);
-                if (tem) permissoesUsuario.Add(p);
+                var chaveEstab = $"estabelecimento:{idEmpresa}";
+
+                if (Cache.TryGetValue<(string Nome, byte[]? FotoDados, string? FotoMime)>(chaveEstab, out var dadosEstab))
+                {
+                    nomeEstabelecimento = dadosEstab.Nome;
+                    fotoBytes           = dadosEstab.FotoDados;
+                    fotoMime            = dadosEstab.FotoMime;
+                }
+                else
+                {
+                    var config = await DbContext.Configuracao
+                        .AsNoTracking()
+                        .Where(c => c.IdEmpresa == idEmpresa)
+                        .Select(c => new { c.NomeEstabelecimento, c.FotoDados, c.FotoMimeType })
+                        .FirstOrDefaultAsync();
+
+                    var nomeEmpresa = await DbContext.Empresa
+                        .AsNoTracking()
+                        .Where(e => e.Id == idEmpresa)
+                        .Select(e => e.NomeEstabelecimento)
+                        .FirstOrDefaultAsync();
+
+                    nomeEstabelecimento = !string.IsNullOrWhiteSpace(config?.NomeEstabelecimento)
+                        ? config.NomeEstabelecimento
+                        : !string.IsNullOrWhiteSpace(nomeEmpresa) ? nomeEmpresa : "DigDogVet";
+                    fotoBytes = config?.FotoDados;
+                    fotoMime  = config?.FotoMimeType;
+
+                    Cache.Set(chaveEstab,
+                        (nomeEstabelecimento, fotoBytes, fotoMime),
+                        TimeSpan.FromMinutes(10));
+                }
+            }
+
+            // ── 3. Admin + permissões (PermissaoService já cacheia internamente) ──
+            ehAdmin = await PermissaoService.EhAdminAsync(userId);
+
+            if (!ehAdmin)
+            {
+                permissoesUsuario = await PermissaoService.ObterTodasPermissoesUsuarioAsync(userId);
             }
         }
     }

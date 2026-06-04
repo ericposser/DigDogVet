@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Controllers;
 
@@ -28,8 +29,9 @@ public class TicketController : UtilController
         TrelloService trelloServico,
         UserManager<IdentityUser> gerenciadorUsuario,
         IDataProtectionProvider provedorProtecao,
-        Contexto contexto)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        Contexto contexto,
+        IMemoryCache cache)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _trelloServico = trelloServico;
     }

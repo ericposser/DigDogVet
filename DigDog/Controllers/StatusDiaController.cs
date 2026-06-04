@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Controllers;
 
@@ -20,19 +21,22 @@ public class StatusDiaController : UtilController
     private readonly UserManager<IdentityUser> _gerenciador;
     private readonly IHubContext<KanbanHub> _hubContext;
     private readonly LogService _logService;
+    private readonly IMemoryCache _cache;
 
     public StatusDiaController(
         Contexto contexto,
         UserManager<IdentityUser> gerenciadorUsuario,
         IDataProtectionProvider provedorProtecao,
         IHubContext<KanbanHub> hubContext,
-        LogService logService)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        LogService logService,
+        IMemoryCache cache)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _contexto    = contexto;
         _gerenciador = gerenciadorUsuario;
         _hubContext  = hubContext;
         _logService  = logService;
+        _cache       = cache;
     }
 
     [RequerPermissao(Permissao.StatusDiaVisualizar)]
@@ -42,6 +46,7 @@ public class StatusDiaController : UtilController
         var hoje      = DateTime.Today;
 
         var banhos = await _contexto.BanhoTosa
+            .AsNoTracking()
             .Include(b => b.Pet)
             .Where(b => b.IdEmpresa == idEmpresa && b.DataHora.Date == hoje)
             .OrderBy(b => b.DataHora)
@@ -50,11 +55,13 @@ public class StatusDiaController : UtilController
         var idsDosBanhos = banhos.Select(b => b.Id).ToList();
 
         var tokensAtivos = await _contexto.KanbanToken
+            .AsNoTracking()
             .Where(t =>
                 t.IdEmpresa == idEmpresa &&
                 t.Ativo     &&
                 t.ExpiraEm  > DateTime.UtcNow &&
                 idsDosBanhos.Contains(t.IdBanhoTosa))
+            .Select(t => new { t.IdBanhoTosa, t.Token })
             .ToListAsync();
 
         var dicionarioLinks = tokensAtivos.ToDictionary(
@@ -81,13 +88,14 @@ public class StatusDiaController : UtilController
         var banho = await _contexto.BanhoTosa
             .Include(b => b.Pet)
             .Where(b => b.IdEmpresa == idEmpresa && b.Id == idReal)
+            .Select(b => new { b.Id, b.DataHora, NomePet = b.Pet!.Nome })
             .FirstOrDefaultAsync();
         if (banho == null) return NotFound();
 
-        var tokensAntigos = await _contexto.KanbanToken
+        // Desativa tokens antigos em uma query
+        await _contexto.KanbanToken
             .Where(t => t.IdBanhoTosa == idReal && t.IdEmpresa == idEmpresa && t.Ativo)
-            .ToListAsync();
-        foreach (var t in tokensAntigos) t.Ativo = false;
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.Ativo, false));
 
         var novoToken = Guid.NewGuid().ToString("D");
         var hash      = KanbanHub.GerarHash(novoToken);
@@ -108,10 +116,10 @@ public class StatusDiaController : UtilController
         await _logService.RegistrarAsync(
             await ObterNomeFuncionarioAsync(),
             "Gerou Link", "Status do Dia",
-            $"Gerou link de status para {banho.Pet?.Nome} — {banho.DataHora:dd/MM/yyyy HH:mm}",
+            $"Gerou link de status para {banho.NomePet} — {banho.DataHora:dd/MM/yyyy HH:mm}",
             idEmpresa);
 
-        DefinirToast($"Link gerado para {banho.Pet?.Nome}!", "success");
+        DefinirToast($"Link gerado para {banho.NomePet}!", "success");
         return RedirectToAction(nameof(Index));
     }
 
@@ -124,21 +132,18 @@ public class StatusDiaController : UtilController
         var idEmpresa = await ObterIdEmpresaAsync();
 
         var banho = await _contexto.BanhoTosa
-            .Include(b => b.Pet)
             .Where(b => b.IdEmpresa == idEmpresa && b.Id == idReal)
+            .Select(b => new { NomePet = b.Pet!.Nome })
             .FirstOrDefaultAsync();
 
-        var tokens = await _contexto.KanbanToken
+        await _contexto.KanbanToken
             .Where(t => t.IdBanhoTosa == idReal && t.IdEmpresa == idEmpresa && t.Ativo)
-            .ToListAsync();
-        foreach (var t in tokens) t.Ativo = false;
-
-        await _contexto.SaveChangesAsync();
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.Ativo, false));
 
         await _logService.RegistrarAsync(
             await ObterNomeFuncionarioAsync(),
             "Revogou Link", "Status do Dia",
-            $"Revogou link de status para {banho?.Pet?.Nome ?? $"Agendamento #{idReal}"}",
+            $"Revogou link de status para {banho?.NomePet ?? $"Agendamento #{idReal}"}",
             idEmpresa);
 
         DefinirToast("Link revogado com sucesso.", "warning");
@@ -152,7 +157,6 @@ public class StatusDiaController : UtilController
         var idReal = DescriptografarId(id);
         if (idReal == null) return NotFound();
 
-        // Rejeita valores fora do enum antes de qualquer consulta ao banco
         if (!Enum.IsDefined(typeof(StatusKanban), novoStatus)) return BadRequest();
 
         var idEmpresa = await ObterIdEmpresaAsync();
@@ -173,12 +177,14 @@ public class StatusDiaController : UtilController
             idEmpresa);
 
         var token = await _contexto.KanbanToken
+            .AsNoTracking()
             .Where(t => t.IdBanhoTosa == idReal && t.Ativo && t.ExpiraEm > DateTime.UtcNow)
+            .Select(t => t.Token)
             .FirstOrDefaultAsync();
 
         if (token != null)
         {
-            var hash = KanbanHub.GerarHash(token.Token);
+            var hash = KanbanHub.GerarHash(token);
             await _hubContext.Clients
                 .Group($"kanban-{hash}")
                 .SendAsync("CardMovido", idReal.Value, novoStatus);
@@ -187,10 +193,6 @@ public class StatusDiaController : UtilController
         return Ok();
     }
 
-    // ── Rota pública ───────────────────────────────────────────────────────
-    // Rate limit restrito (política "publica": 30 req/min por IP).
-    // Valida formato do token antes de qualquer acesso ao banco.
-    // Resposta uniforme para token inválido e não encontrado/expirado.
     [AllowAnonymous]
     [EnableRateLimiting("publica")]
     public async Task<IActionResult> Publico(string token)
@@ -200,6 +202,7 @@ public class StatusDiaController : UtilController
         var hash = KanbanHub.GerarHash(token);
 
         var kanbanToken = await _contexto.KanbanToken
+            .AsNoTracking()
             .Include(t => t.BanhoTosa)
                 .ThenInclude(b => b!.Pet)
             .FirstOrDefaultAsync(t =>
@@ -207,13 +210,10 @@ public class StatusDiaController : UtilController
                 t.Ativo     &&
                 t.ExpiraEm  > DateTime.UtcNow);
 
-        // Mesma view para token inválido, expirado ou não encontrado
         if (kanbanToken == null) return View("LinkInvalido");
 
-        var (nome, fotoBytes, fotoMime) = await ObterDadosEstabelecimento(kanbanToken.IdEmpresa);
+        var (nome, fotoBytes, fotoMime) = await ObterDadosEstabelecimentoAsync(kanbanToken.IdEmpresa);
 
-        // EhDono removido — a view pública é somente leitura para todos.
-        // Edição de status ocorre exclusivamente pela tela interna (AtualizarStatus).
         ViewBag.TokenPublico        = token;
         ViewBag.NomeEstabelecimento = nome;
         ViewBag.FotoBytes           = fotoBytes;
@@ -225,19 +225,39 @@ public class StatusDiaController : UtilController
         return View(kanbanToken.BanhoTosa!);
     }
 
-    private async Task<(string Nome, byte[]? FotoDados, string? FotoMime)> ObterDadosEstabelecimento(int idEmpresa)
+    // ─── Cache compartilhado com CarteiraController (mesma chave) ────────
+    private async Task<(string Nome, byte[]? FotoDados, string? FotoMime)> ObterDadosEstabelecimentoAsync(int idEmpresa)
     {
-        var empresa = await _contexto.Empresa.FindAsync(idEmpresa);
-        var config  = await _contexto.Configuracao
+        var chaveCache = $"estabelecimento:{idEmpresa}";
+
+        if (_cache.TryGetValue<(string, byte[]?, string?)>(chaveCache, out var dadosCache))
+            return dadosCache;
+
+        var nomeEmpresa = await _contexto.Empresa
+            .AsNoTracking()
+            .Where(e => e.Id == idEmpresa)
+            .Select(e => e.NomeEstabelecimento)
+            .FirstOrDefaultAsync();
+
+        var config = await _contexto.Configuracao
+            .AsNoTracking()
             .Where(c => c.IdEmpresa == idEmpresa)
+            .Select(c => new { c.NomeEstabelecimento, c.FotoDados, c.FotoMimeType })
             .FirstOrDefaultAsync();
 
         var nome = !string.IsNullOrWhiteSpace(config?.NomeEstabelecimento)
             ? config.NomeEstabelecimento
-            : !string.IsNullOrWhiteSpace(empresa?.NomeEstabelecimento)
-                ? empresa.NomeEstabelecimento
-                : "DigDogVet";
+            : !string.IsNullOrWhiteSpace(nomeEmpresa) ? nomeEmpresa : "DigDogVet";
 
-        return (nome, config?.FotoDados, config?.FotoMimeType);
+        var resultado = (nome, config?.FotoDados, config?.FotoMimeType);
+        _cache.Set(chaveCache, resultado, TimeSpan.FromMinutes(10));
+        return resultado;
+    }
+
+    // Stub do método de validação — adapte se ele já existir em outro lugar
+    private static bool TokenPublicoValido(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return false;
+        return Guid.TryParse(token, out _);
     }
 }

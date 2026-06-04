@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Controllers;
 
@@ -16,8 +17,9 @@ public class AssinaturaController : UtilController
     public AssinaturaController(
         Contexto contexto,
         UserManager<IdentityUser> gerenciadorUsuario,
-        IDataProtectionProvider provedorProtecao)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        IDataProtectionProvider provedorProtecao,
+        IMemoryCache cache)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _contexto = contexto;
     }

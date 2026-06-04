@@ -5,19 +5,25 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Controllers;
 
 [Authorize(Roles = "Admin")]
 public class LogController : UtilController
 {
+    // Limite de logs exibidos por carregamento de página.
+    // Os logs mais antigos continuam no banco e são limpos pelo LimpezaLogService.
+    private const int MaximoLogsExibidos = 500;
+
     private readonly Contexto _contexto;
 
     public LogController(
         Contexto contexto,
         UserManager<IdentityUser> gerenciadorUsuario,
-        IDataProtectionProvider provedorProtecao)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        IDataProtectionProvider provedorProtecao,
+        IMemoryCache cache)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _contexto = contexto;
     }
@@ -26,15 +32,16 @@ public class LogController : UtilController
     {
         var idEmpresa = await ObterIdEmpresaAsync();
         var logs      = await _contexto.Log
+            .AsNoTracking()
             .Where(l => l.IdEmpresa == idEmpresa)
             .OrderByDescending(l => l.DataHora)
+            .Take(MaximoLogsExibidos)
             .ToListAsync();
+
+        ViewBag.LimiteLogs = MaximoLogsExibidos;
         return View(logs);
     }
 
-    // ── Delete individual ──────────────────────────────────────────────────
-    // Recebe ID criptografado (string), não int diretamente.
-    // Verifica que o log pertence à empresa do Admin antes de remover.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(string id)
@@ -43,31 +50,31 @@ public class LogController : UtilController
         if (idReal == null) return NotFound();
 
         var idEmpresa = await ObterIdEmpresaAsync();
-        var log       = await _contexto.Log
-            .Where(l => l.IdEmpresa == idEmpresa)
-            .FirstOrDefaultAsync(l => l.Id == idReal);
 
-        if (log != null)
-        {
-            _contexto.Log.Remove(log);
-            await _contexto.SaveChangesAsync();
-        }
+        // DELETE direto via SQL — sem load + tracking + delete
+        var linhasAfetadas = await _contexto.Log
+            .Where(l => l.Id == idReal && l.IdEmpresa == idEmpresa)
+            .ExecuteDeleteAsync();
+
+        if (linhasAfetadas == 0)
+            return NotFound();
 
         DefinirToast("Registro removido com sucesso!", "danger");
         return RedirectToAction(nameof(Index));
     }
 
-    // ── Limpar todos ───────────────────────────────────────────────────────
-    // Sem alteração de lógica — já filtrava por empresa.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> LimparTodos()
     {
         var idEmpresa = await ObterIdEmpresaAsync();
-        var todos     = _contexto.Log.Where(l => l.IdEmpresa == idEmpresa);
-        _contexto.Log.RemoveRange(todos);
-        await _contexto.SaveChangesAsync();
-        DefinirToast("Todos os registros foram removidos!", "danger");
+
+        // DELETE em massa: uma única instrução SQL em vez de N deletes
+        var linhasRemovidas = await _contexto.Log
+            .Where(l => l.IdEmpresa == idEmpresa)
+            .ExecuteDeleteAsync();
+
+        DefinirToast($"{linhasRemovidas} registro(s) removido(s)!", "danger");
         return RedirectToAction(nameof(Index));
     }
 }

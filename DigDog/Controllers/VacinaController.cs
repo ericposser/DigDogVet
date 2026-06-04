@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Controllers;
 
@@ -20,8 +21,9 @@ public class VacinaController : UtilController
         Contexto contexto,
         UserManager<IdentityUser> gerenciadorUsuario,
         IDataProtectionProvider provedorProtecao,
-        LogService logService)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        LogService logService,
+        IMemoryCache cache)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _contexto   = contexto;
         _logService = logService;
@@ -32,6 +34,7 @@ public class VacinaController : UtilController
     {
         var idEmpresa = await ObterIdEmpresaAsync();
         var vacinas = await _contexto.Vacina
+            .AsNoTracking()
             .Where(v => v.IdEmpresa == idEmpresa)
             .OrderBy(v => v.DataValidade)
             .ToListAsync();
@@ -72,6 +75,7 @@ public class VacinaController : UtilController
         if (idReal == null) return NotFound();
         var idEmpresa = await ObterIdEmpresaAsync();
         var vacina = await _contexto.Vacina
+            .AsNoTracking()
             .Where(v => v.IdEmpresa == idEmpresa)
             .FirstOrDefaultAsync(v => v.Id == idReal);
         if (vacina == null) return NotFound();
@@ -97,14 +101,14 @@ public class VacinaController : UtilController
         if (vacinaExistente == null) return NotFound();
         if (ModelState.IsValid)
         {
-            vacinaExistente.Nome        = vacina.Nome;
-            vacinaExistente.Fabricante  = vacina.Fabricante;
-            vacinaExistente.Lote        = vacina.Lote;
+            vacinaExistente.Nome         = vacina.Nome;
+            vacinaExistente.Fabricante   = vacina.Fabricante;
+            vacinaExistente.Lote         = vacina.Lote;
             vacinaExistente.DataValidade = vacina.DataValidade;
             try { await _contexto.SaveChangesAsync(); }
             catch (DbUpdateConcurrencyException)
             {
-                if (!VacinaExiste(idReal.Value, idEmpresa)) return NotFound();
+                if (!await VacinaExisteAsync(idReal.Value, idEmpresa)) return NotFound();
                 throw;
             }
             await _logService.RegistrarAsync(
@@ -126,6 +130,7 @@ public class VacinaController : UtilController
         if (idReal == null) return NotFound();
         var idEmpresa = await ObterIdEmpresaAsync();
         var vacina = await _contexto.Vacina
+            .AsNoTracking()
             .Where(v => v.IdEmpresa == idEmpresa)
             .FirstOrDefaultAsync(v => v.Id == idReal);
         if (vacina == null) return NotFound();
@@ -159,6 +164,6 @@ public class VacinaController : UtilController
         return RedirectToAction(nameof(Index));
     }
 
-    private bool VacinaExiste(int id, int idEmpresa) =>
-        _contexto.Vacina.Any(v => v.Id == id && v.IdEmpresa == idEmpresa);
+    private async Task<bool> VacinaExisteAsync(int id, int idEmpresa) =>
+        await _contexto.Vacina.AnyAsync(v => v.Id == id && v.IdEmpresa == idEmpresa);
 }

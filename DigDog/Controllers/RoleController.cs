@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Controllers;
 
@@ -19,8 +20,9 @@ public class RoleController : UtilController
         IDataProtectionProvider provedorProtecao,
         Contexto contexto,
         RoleManager<IdentityRole> gerenciadorRole,
-        PermissaoService permissaoService)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        PermissaoService permissaoService,
+        IMemoryCache cache)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _gerenciadorRole  = gerenciadorRole;
         _permissaoService = permissaoService;

@@ -8,13 +8,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Controllers;
 
 [Authorize]
 public class VacinacaoController : UtilController
 {
-    // Máximo de vacinas que podem ser registradas em uma única aplicação
     private const int MaxVacinasPorAplicacao = 20;
 
     private readonly Contexto _contexto;
@@ -24,8 +24,9 @@ public class VacinacaoController : UtilController
         Contexto contexto,
         UserManager<IdentityUser> gerenciadorUsuario,
         IDataProtectionProvider provedorProtecao,
-        LogService logService)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        LogService logService,
+        IMemoryCache cache)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _contexto   = contexto;
         _logService = logService;
@@ -35,7 +36,9 @@ public class VacinacaoController : UtilController
     public async Task<IActionResult> Index()
     {
         var idEmpresa  = await ObterIdEmpresaAsync();
+
         var vacinacoes = await _contexto.Vacinacao
+            .AsNoTracking()
             .Include(v => v.Pet)
             .Include(v => v.Vacina)
             .Where(v => v.IdEmpresa == idEmpresa)
@@ -47,8 +50,11 @@ public class VacinacaoController : UtilController
             .Select(v => v.IdPet)
             .Distinct().ToList();
 
+        // Projeção: só Id e Token, não a entidade inteira
         var tokensAtivos = await _contexto.CarteiraToken
+            .AsNoTracking()
             .Where(t => t.IdEmpresa == idEmpresa && t.Ativo && idsDosPets.Contains(t.IdPet))
+            .Select(t => new { t.IdPet, t.Token })
             .ToListAsync();
 
         ViewBag.TokensAtivos = tokensAtivos.ToDictionary(
@@ -78,16 +84,8 @@ public class VacinacaoController : UtilController
         RemoverValidacaoUsuario();
 
         ValidarTamanhoTexto(nameof(vacinacao.Observacoes), vacinacao.Observacoes, 1000);
+        ValidarDatas(vacinacao);
 
-        if (vacinacao.DataAplicacao > DateTime.Today)
-            ModelState.AddModelError(nameof(vacinacao.DataAplicacao),
-                "A data de aplicação não pode ser futura.");
-
-        if (vacinacao.DataProximaDose.HasValue && vacinacao.DataProximaDose.Value <= vacinacao.DataAplicacao)
-            ModelState.AddModelError(nameof(vacinacao.DataProximaDose),
-                "A data da próxima dose deve ser posterior à data de aplicação.");
-
-        // Limita a quantidade de vacinas por aplicação para evitar payload abusivo
         if (Vacinas == null || !Vacinas.Any())
             ModelState.AddModelError(string.Empty, "Adicione pelo menos uma vacina.");
         else if (Vacinas.Count > MaxVacinasPorAplicacao)
@@ -95,33 +93,32 @@ public class VacinacaoController : UtilController
                 $"O máximo de vacinas por aplicação é {MaxVacinasPorAplicacao}.");
         else
         {
-            // Valida tamanho do campo Dose de cada item
             for (int i = 0; i < Vacinas.Count; i++)
                 ValidarTamanhoTexto($"Vacinas[{i}].Dose", Vacinas[i].Dose, 100);
         }
 
         if (ModelState.IsValid)
         {
-            foreach (var item in Vacinas!)
+            var novasVacinacoes = Vacinas!.Select(item => new Vacinacao
             {
-                _contexto.Add(new Vacinacao
-                {
-                    IdPet           = vacinacao.IdPet,
-                    IdVacina        = item.IdVacina,
-                    Dose            = item.Dose,
-                    DataAplicacao   = vacinacao.DataAplicacao,
-                    DataProximaDose = vacinacao.DataProximaDose,
-                    Observacoes     = vacinacao.Observacoes,
-                    IdEmpresa       = idEmpresa
-                });
-            }
+                IdPet           = vacinacao.IdPet,
+                IdVacina        = item.IdVacina,
+                Dose            = item.Dose,
+                DataAplicacao   = vacinacao.DataAplicacao,
+                DataProximaDose = vacinacao.DataProximaDose,
+                Observacoes     = vacinacao.Observacoes,
+                IdEmpresa       = idEmpresa
+            }).ToList();
+
+            _contexto.Vacinacao.AddRange(novasVacinacoes);
             await _contexto.SaveChangesAsync();
+
             await _logService.RegistrarAsync(
                 await ObterNomeFuncionarioAsync(),
                 "Criou", "Carteira de Vacinação",
-                $"Registrou {Vacinas.Count} vacinação(ões) em {vacinacao.DataAplicacao:dd/MM/yyyy}",
+                $"Registrou {novasVacinacoes.Count} vacinação(ões) em {vacinacao.DataAplicacao:dd/MM/yyyy}",
                 idEmpresa);
-            DefinirToast($"{Vacinas.Count} vacinação(ões) registrada(s) com sucesso!", "success");
+            DefinirToast($"{novasVacinacoes.Count} vacinação(ões) registrada(s) com sucesso!", "success");
             return RedirectToAction(nameof(Index));
         }
         await CarregarPets(idEmpresa, vacinacao.IdPet);
@@ -136,6 +133,7 @@ public class VacinacaoController : UtilController
         if (idReal == null) return NotFound();
         var idEmpresa = await ObterIdEmpresaAsync();
         var vacinacao = await _contexto.Vacinacao
+            .AsNoTracking()
             .Where(v => v.IdEmpresa == idEmpresa)
             .FirstOrDefaultAsync(v => v.Id == idReal);
         if (vacinacao == null) return NotFound();
@@ -159,7 +157,6 @@ public class VacinacaoController : UtilController
 
         ValidarTamanhoTexto(nameof(vacinacao.Observacoes), vacinacao.Observacoes, 1000);
         ValidarTamanhoTexto(nameof(vacinacao.Dose),        vacinacao.Dose,        100);
-
         ValidarDatas(vacinacao);
 
         var vacinacaoExistente = await _contexto.Vacinacao
@@ -178,7 +175,7 @@ public class VacinacaoController : UtilController
             try { await _contexto.SaveChangesAsync(); }
             catch (DbUpdateConcurrencyException)
             {
-                if (!VacinacaoExiste(idReal.Value, idEmpresa)) return NotFound();
+                if (!await VacinacaoExisteAsync(idReal.Value, idEmpresa)) return NotFound();
                 throw;
             }
             await _logService.RegistrarAsync(
@@ -202,6 +199,7 @@ public class VacinacaoController : UtilController
         if (idReal == null) return NotFound();
         var idEmpresa = await ObterIdEmpresaAsync();
         var vacinacao = await _contexto.Vacinacao
+            .AsNoTracking()
             .Include(v => v.Pet)
             .Include(v => v.Vacina)
             .Where(v => v.IdEmpresa == idEmpresa)
@@ -239,22 +237,28 @@ public class VacinacaoController : UtilController
         return RedirectToAction(nameof(Index));
     }
 
-    private bool VacinacaoExiste(int id, int idEmpresa) =>
-        _contexto.Vacinacao.Any(v => v.Id == id && v.IdEmpresa == idEmpresa);
+    private async Task<bool> VacinacaoExisteAsync(int id, int idEmpresa) =>
+        await _contexto.Vacinacao.AnyAsync(v => v.Id == id && v.IdEmpresa == idEmpresa);
 
     private async Task CarregarPets(int idEmpresa, int? idSelecionado = null)
     {
         var pets = await _contexto.Pet
+            .AsNoTracking()
             .Where(p => p.IdEmpresa == idEmpresa)
-            .OrderBy(p => p.Nome).ToListAsync();
+            .OrderBy(p => p.Nome)
+            .Select(p => new { p.Id, p.Nome })
+            .ToListAsync();
         ViewData["IdPet"] = new SelectList(pets, "Id", "Nome", idSelecionado);
     }
 
     private async Task CarregarVacinas(int idEmpresa, int? idSelecionado = null)
     {
         var vacinas = await _contexto.Vacina
+            .AsNoTracking()
             .Where(v => v.IdEmpresa == idEmpresa)
-            .OrderBy(v => v.Nome).ToListAsync();
+            .OrderBy(v => v.Nome)
+            .Select(v => new { v.Id, v.Nome })
+            .ToListAsync();
         ViewData["IdVacina"] = new SelectList(vacinas, "Id", "Nome", idSelecionado);
     }
 

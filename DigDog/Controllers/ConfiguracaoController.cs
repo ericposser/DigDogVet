@@ -26,7 +26,7 @@ public class ConfiguracaoController : UtilController
         IDataProtectionProvider provedorProtecao,
         Contexto contexto,
         IMemoryCache cache)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _contexto                = contexto;
         _gerenciadorUsuarioLocal = gerenciadorUsuario;
@@ -111,6 +111,7 @@ public class ConfiguracaoController : UtilController
 
             // ─── INVALIDA cache do estabelecimento (usado no CarteiraController e Layout) ───
             _cache.Remove($"estabelecimento:{idEmpresa}");
+            _cache.Remove($"clinica-pdf:{idEmpresa}");
 
             DefinirToast("Configurações salvas com sucesso!", "success");
             return RedirectToAction(nameof(Index));

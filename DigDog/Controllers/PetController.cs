@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Controllers;
 
@@ -21,8 +22,9 @@ public class PetController : UtilController
         Contexto contexto,
         UserManager<IdentityUser> gerenciadorUsuario,
         IDataProtectionProvider provedorProtecao,
-        LogService logService)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        LogService logService,
+        IMemoryCache cache)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _contexto   = contexto;
         _logService = logService;
@@ -33,8 +35,10 @@ public class PetController : UtilController
     {
         var idEmpresa = await ObterIdEmpresaAsync();
         var pets = await _contexto.Pet
+            .AsNoTracking()
             .Include(p => p.Cliente)
             .Where(p => p.IdEmpresa == idEmpresa)
+            .OrderBy(p => p.Nome)
             .ToListAsync();
         return View(pets);
     }
@@ -79,6 +83,7 @@ public class PetController : UtilController
         if (idReal == null) return NotFound();
         var idEmpresa = await ObterIdEmpresaAsync();
         var pet = await _contexto.Pet
+            .AsNoTracking()
             .Where(p => p.IdEmpresa == idEmpresa)
             .FirstOrDefaultAsync(p => p.Id == idReal);
         if (pet == null) return NotFound();
@@ -114,7 +119,7 @@ public class PetController : UtilController
             try { await _contexto.SaveChangesAsync(); }
             catch (DbUpdateConcurrencyException)
             {
-                if (!PetExiste(idReal.Value, idEmpresa)) return NotFound();
+                if (!await PetExisteAsync(idReal.Value, idEmpresa)) return NotFound();
                 throw;
             }
             await _logService.RegistrarAsync(
@@ -137,6 +142,7 @@ public class PetController : UtilController
         if (idReal == null) return NotFound();
         var idEmpresa = await ObterIdEmpresaAsync();
         var pet = await _contexto.Pet
+            .AsNoTracking()
             .Include(p => p.Cliente)
             .Where(p => p.IdEmpresa == idEmpresa)
             .FirstOrDefaultAsync(p => p.Id == idReal);
@@ -171,14 +177,17 @@ public class PetController : UtilController
         return RedirectToAction(nameof(Index));
     }
 
-    private bool PetExiste(int id, int idEmpresa) =>
-        _contexto.Pet.Any(p => p.Id == id && p.IdEmpresa == idEmpresa);
+    private async Task<bool> PetExisteAsync(int id, int idEmpresa) =>
+        await _contexto.Pet.AnyAsync(p => p.Id == id && p.IdEmpresa == idEmpresa);
 
     private async Task CarregarTutores(int idEmpresa, int? idSelecionado = null)
     {
+        // Projeção: traz só Id e Nome em vez do Cliente inteiro (com CPF, endereço, etc)
         var tutores = await _contexto.Cliente
+            .AsNoTracking()
             .Where(c => c.IdEmpresa == idEmpresa)
             .OrderBy(c => c.Nome)
+            .Select(c => new { c.Id, c.Nome })
             .ToListAsync();
         ViewData["IdCliente"] = new SelectList(tutores, "Id", "Nome", idSelecionado);
     }

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Controllers;
 
@@ -21,8 +22,9 @@ public class VendaController : UtilController
         Contexto contexto,
         UserManager<IdentityUser> gerenciadorUsuario,
         IDataProtectionProvider provedorProtecao,
-        LogService logService)
-        : base(gerenciadorUsuario, provedorProtecao, contexto)
+        LogService logService,
+        IMemoryCache cache)
+        : base(gerenciadorUsuario, provedorProtecao, contexto, cache)
     {
         _contexto   = contexto;
         _logService = logService;
@@ -33,6 +35,7 @@ public class VendaController : UtilController
     {
         var idEmpresa = await ObterIdEmpresaAsync();
         var vendas    = await _contexto.Venda
+            .AsNoTracking()
             .Include(v => v.Produto)
             .Where(v => v.IdEmpresa == idEmpresa)
             .OrderByDescending(v => v.DataVenda)
@@ -57,7 +60,6 @@ public class VendaController : UtilController
         RemoverValidacaoUsuario();
         ModelState.Remove(nameof(venda.IdProduto));
 
-        // Descriptografa o ID do produto recebido do <select> criptografado
         var idProdutoReal = DescriptografarId(idProduto);
         if (idProdutoReal == null)
             ModelState.AddModelError(nameof(venda.IdProduto), "Produto inválido.");
@@ -69,6 +71,7 @@ public class VendaController : UtilController
         if (venda.IdProduto == 0)
             ModelState.AddModelError(nameof(venda.IdProduto), "Selecione o produto.");
 
+        // Produto precisa de tracking — vamos modificar o Estoque
         var produto = await _contexto.Produto
             .Where(p => p.IdEmpresa == idEmpresa && p.Id == venda.IdProduto)
             .FirstOrDefaultAsync();
@@ -108,6 +111,7 @@ public class VendaController : UtilController
         if (idReal == null) return NotFound();
         var idEmpresa = await ObterIdEmpresaAsync();
         var venda     = await _contexto.Venda
+            .AsNoTracking()
             .Include(v => v.Produto)
             .Where(v => v.IdEmpresa == idEmpresa)
             .FirstOrDefaultAsync(v => v.Id == idReal);
@@ -125,7 +129,9 @@ public class VendaController : UtilController
         var idReal = DescriptografarId(idRota ?? id);
         if (idReal == null) return NotFound();
         var idEmpresa = await ObterIdEmpresaAsync();
-        var venda     = await _contexto.Venda
+
+        // Precisa de tracking — vamos restaurar o estoque
+        var venda = await _contexto.Venda
             .Include(v => v.Produto)
             .Where(v => v.IdEmpresa == idEmpresa)
             .FirstOrDefaultAsync(v => v.Id == idReal);
@@ -148,10 +154,6 @@ public class VendaController : UtilController
         return RedirectToAction(nameof(Index));
     }
 
-    // ── Endpoint AJAX — preço e estoque do produto ─────────────────────────
-    // Recebe ID criptografado (string) para manter consistência com o padrão
-    // do projeto e não expor IDs reais em requisições fetch do frontend.
-    // A view deve passar o ID já criptografado via ViewBag/data-attribute.
     [HttpGet]
     public async Task<IActionResult> ObterPrecoProduto(string id)
     {
@@ -160,6 +162,7 @@ public class VendaController : UtilController
 
         var idEmpresa = await ObterIdEmpresaAsync();
         var produto   = await _contexto.Produto
+            .AsNoTracking()
             .Where(p => p.IdEmpresa == idEmpresa && p.Id == idReal)
             .Select(p => new { p.Preco, p.Estoque })
             .FirstOrDefaultAsync();
@@ -170,15 +173,18 @@ public class VendaController : UtilController
 
     private async Task CarregarProdutos(int idEmpresa, int? idSelecionado = null)
     {
+        // Projeção no banco: só Id e Nome — não traz Descricao, Preco, etc
         var produtos = await _contexto.Produto
+            .AsNoTracking()
             .Where(p => p.IdEmpresa == idEmpresa && p.Estoque > 0)
             .OrderBy(p => p.Nome)
+            .Select(p => new { p.Id, p.Nome })
             .ToListAsync();
-        // Monta SelectList com ID criptografado como value para o endpoint AJAX
+
         var itens = produtos.Select(p => new SelectListItem
         {
-            Value = CriptografarId(p.Id),
-            Text  = p.Nome,
+            Value    = CriptografarId(p.Id),
+            Text     = p.Nome,
             Selected = p.Id == idSelecionado
         }).ToList();
         ViewData["IdProduto"] = itens;
