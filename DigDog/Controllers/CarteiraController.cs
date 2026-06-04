@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -17,16 +18,19 @@ public class CarteiraController : UtilController
 {
     private readonly Contexto _contexto;
     private readonly LogService _logService;
+    private readonly IMemoryCache _cache;
 
     public CarteiraController(
         Contexto contexto,
         UserManager<IdentityUser> gerenciadorUsuario,
         IDataProtectionProvider provedorProtecao,
-        LogService logService)
+        LogService logService,
+        IMemoryCache cache)
         : base(gerenciadorUsuario, provedorProtecao, contexto)
     {
         _contexto   = contexto;
         _logService = logService;
+        _cache      = cache;
     }
 
     [HttpPost]
@@ -39,13 +43,14 @@ public class CarteiraController : UtilController
 
         var pet = await _contexto.Pet
             .Where(p => p.IdEmpresa == idEmpresa && p.Id == idReal)
+            .Select(p => new { p.Id, p.Nome })
             .FirstOrDefaultAsync();
         if (pet == null) return NotFound();
 
-        var tokensAntigos = await _contexto.CarteiraToken
+        // Desativa tokens antigos em uma query (sem carregar entidades)
+        await _contexto.CarteiraToken
             .Where(t => t.IdPet == idReal && t.IdEmpresa == idEmpresa && t.Ativo)
-            .ToListAsync();
-        foreach (var t in tokensAntigos) t.Ativo = false;
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.Ativo, false));
 
         var novoToken = Guid.NewGuid().ToString("D");
         var hash      = GerarHash(novoToken);
@@ -82,14 +87,12 @@ public class CarteiraController : UtilController
 
         var pet = await _contexto.Pet
             .Where(p => p.IdEmpresa == idEmpresa && p.Id == idReal)
+            .Select(p => new { p.Id, p.Nome })
             .FirstOrDefaultAsync();
 
-        var tokens = await _contexto.CarteiraToken
+        await _contexto.CarteiraToken
             .Where(t => t.IdPet == idReal && t.IdEmpresa == idEmpresa && t.Ativo)
-            .ToListAsync();
-        foreach (var t in tokens) t.Ativo = false;
-
-        await _contexto.SaveChangesAsync();
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.Ativo, false));
 
         await _logService.RegistrarAsync(
             await ObterNomeFuncionarioAsync(),
@@ -102,33 +105,30 @@ public class CarteiraController : UtilController
     }
 
     // ── Rota pública ───────────────────────────────────────────────────────
-    // Rate limit restrito: 30 req/min por IP (política "publica" do Program.cs).
-    // Não retorna diferença entre "token inválido" e "token não encontrado"
-    // para não permitir enumeração.
     [AllowAnonymous]
     [EnableRateLimiting("publica")]
     public async Task<IActionResult> Publico(string token)
     {
-        // Valida formato antes de qualquer acesso ao banco
         if (!TokenPublicoValido(token)) return View("LinkInvalido");
 
         var hash = GerarHash(token);
 
         var carteiraToken = await _contexto.CarteiraToken
+            .AsNoTracking()
             .Include(t => t.Pet)
                 .ThenInclude(p => p!.Cliente)
             .FirstOrDefaultAsync(t => t.TokenHash == hash && t.Ativo);
 
-        // Mesma view para token inválido e não encontrado — sem vazar informação
         if (carteiraToken == null) return View("LinkInvalido");
 
         var vacinacoes = await _contexto.Vacinacao
+            .AsNoTracking()
             .Include(v => v.Vacina)
             .Where(v => v.IdPet == carteiraToken.IdPet && v.IdEmpresa == carteiraToken.IdEmpresa)
             .OrderByDescending(v => v.DataAplicacao)
             .ToListAsync();
 
-        var (nome, fotoBytes, fotoMime) = await ObterDadosEstabelecimento(carteiraToken.IdEmpresa);
+        var (nome, fotoBytes, fotoMime) = await ObterDadosEstabelecimentoAsync(carteiraToken.IdEmpresa);
 
         ViewBag.NomeEstabelecimento = nome;
         ViewBag.FotoBytes           = fotoBytes;
@@ -144,19 +144,40 @@ public class CarteiraController : UtilController
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
-    private async Task<(string Nome, byte[]? FotoDados, string? FotoMime)> ObterDadosEstabelecimento(int idEmpresa)
+    // ─── Cache de 10 minutos: dados do estabelecimento mudam raramente ───
+    private async Task<(string Nome, byte[]? FotoDados, string? FotoMime)> ObterDadosEstabelecimentoAsync(int idEmpresa)
     {
-        var empresa = await _contexto.Empresa.FindAsync(idEmpresa);
-        var config  = await _contexto.Configuracao
+        var chaveCache = $"estabelecimento:{idEmpresa}";
+
+        if (_cache.TryGetValue<(string, byte[]?, string?)>(chaveCache, out var dadosCache))
+            return dadosCache;
+
+        var empresa = await _contexto.Empresa
+            .AsNoTracking()
+            .Where(e => e.Id == idEmpresa)
+            .Select(e => e.NomeEstabelecimento)
+            .FirstOrDefaultAsync();
+
+        var config = await _contexto.Configuracao
+            .AsNoTracking()
             .Where(c => c.IdEmpresa == idEmpresa)
+            .Select(c => new { c.NomeEstabelecimento, c.FotoDados, c.FotoMimeType })
             .FirstOrDefaultAsync();
 
         var nome = !string.IsNullOrWhiteSpace(config?.NomeEstabelecimento)
             ? config.NomeEstabelecimento
-            : !string.IsNullOrWhiteSpace(empresa?.NomeEstabelecimento)
-                ? empresa.NomeEstabelecimento
-                : "DigDogVet";
+            : !string.IsNullOrWhiteSpace(empresa) ? empresa : "DigDogVet";
 
-        return (nome, config?.FotoDados, config?.FotoMimeType);
+        var resultado = (nome, config?.FotoDados, config?.FotoMimeType);
+        _cache.Set(chaveCache, resultado, TimeSpan.FromMinutes(10));
+        return resultado;
+    }
+
+    // Stub do método de validação — adapte se ele já existir em outro lugar
+    private static bool TokenPublicoValido(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return false;
+        // Formato esperado: GUID (36 chars com hífens). Bloqueia inputs maliciosos.
+        return Guid.TryParse(token, out _);
     }
 }

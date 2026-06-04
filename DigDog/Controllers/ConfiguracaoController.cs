@@ -1,43 +1,43 @@
 using DigDog.Data;
 using DigDog.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DigDog.Controllers;
 
+[Authorize]
 public class ConfiguracaoController : UtilController
 {
-    // Tipos MIME aceitos para a foto do estabelecimento
     private static readonly HashSet<string> _mimesFotoPermitidos =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            "image/jpeg",
-            "image/png",
-            "image/webp"
-        };
+        new(StringComparer.OrdinalIgnoreCase) { "image/jpeg", "image/png", "image/webp" };
 
-    // Tamanho máximo da foto: 5 MB
     private const long TamanhoMaximoFotoBytes = 5 * 1024 * 1024;
 
     private readonly Contexto _contexto;
     private readonly UserManager<IdentityUser> _gerenciadorUsuarioLocal;
+    private readonly IMemoryCache _cache;
 
     public ConfiguracaoController(
         UserManager<IdentityUser> gerenciadorUsuario,
         IDataProtectionProvider provedorProtecao,
-        Contexto contexto)
+        Contexto contexto,
+        IMemoryCache cache)
         : base(gerenciadorUsuario, provedorProtecao, contexto)
     {
         _contexto                = contexto;
         _gerenciadorUsuarioLocal = gerenciadorUsuario;
+        _cache                   = cache;
     }
 
     public async Task<IActionResult> Index()
     {
         var idEmpresa = await ObterIdEmpresaAsync();
         var config    = await _contexto.Configuracao
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.IdEmpresa == idEmpresa)
             ?? new Configuracao { NomeEstabelecimento = "DigDogVet" };
 
@@ -53,34 +53,26 @@ public class ConfiguracaoController : UtilController
     {
         RemoverValidacaoUsuario();
 
-        // ── Validação do upload de foto ────────────────────────────────────
+        // ── Validação do upload de foto ─────────────────────────────────
         if (foto != null && foto.Length > 0)
         {
             if (foto.Length > TamanhoMaximoFotoBytes)
-            {
                 ModelState.AddModelError("foto", "A foto não pode exceder 5 MB.");
-            }
             else if (!_mimesFotoPermitidos.Contains(foto.ContentType))
-            {
                 ModelState.AddModelError("foto", "Formato inválido. Envie uma imagem JPEG, PNG ou WebP.");
-            }
-            else
-            {
-                // Verifica os magic bytes do arquivo para garantir que o conteúdo
-                // bate com o MIME declarado, evitando spoofing de Content-Type.
-                if (!await ValidarMagicBytesFotoAsync(foto))
-                    ModelState.AddModelError("foto", "O arquivo enviado não é uma imagem válida.");
-            }
+            else if (!await ValidarMagicBytesFotoAsync(foto))
+                ModelState.AddModelError("foto", "O arquivo enviado não é uma imagem válida.");
         }
 
-        // ── Validação de tamanho dos campos de texto ───────────────────────
         ValidarTamanhoTexto(nameof(model.NomeEstabelecimento), model.NomeEstabelecimento, 150);
         ValidarTamanhoTexto(nameof(model.Telefone),            model.Telefone,            20);
         ValidarTamanhoTexto(nameof(model.Endereco),            model.Endereco,            300);
 
         if (ModelState.IsValid)
         {
-            var idEmpresa       = await ObterIdEmpresaAsync();
+            var idEmpresa = await ObterIdEmpresaAsync();
+
+            // Aqui PRECISAMOS de tracking — vamos atualizar a entidade
             var configExistente = await _contexto.Configuracao
                 .FirstOrDefaultAsync(c => c.IdEmpresa == idEmpresa);
 
@@ -104,15 +96,10 @@ public class ConfiguracaoController : UtilController
                 configExistente.Endereco            = model.Endereco;
                 configExistente.FotoDados           = model.FotoDados;
                 configExistente.FotoMimeType        = model.FotoMimeType;
-                _contexto.Update(configExistente);
 
-                // Atualiza também o nome na tabela Empresa
                 var empresa = await _contexto.Empresa.FindAsync(idEmpresa);
                 if (empresa != null)
-                {
                     empresa.NomeEstabelecimento = model.NomeEstabelecimento;
-                    _contexto.Update(empresa);
-                }
             }
             else
             {
@@ -121,6 +108,10 @@ public class ConfiguracaoController : UtilController
             }
 
             await _contexto.SaveChangesAsync();
+
+            // ─── INVALIDA cache do estabelecimento (usado no CarteiraController e Layout) ───
+            _cache.Remove($"estabelecimento:{idEmpresa}");
+
             DefinirToast("Configurações salvas com sucesso!", "success");
             return RedirectToAction(nameof(Index));
         }
@@ -140,7 +131,6 @@ public class ConfiguracaoController : UtilController
             return RedirectToAction(nameof(Index));
         }
 
-        // Tamanho e formato básico
         if (NovoEmail.Length > 254 || !NovoEmail.Contains('@'))
         {
             DefinirToast("Informe um e-mail válido.", "warning");
@@ -209,21 +199,11 @@ public class ConfiguracaoController : UtilController
         if (resultado.Succeeded)
             DefinirToast("Senha alterada com sucesso!", "success");
         else
-        {
-            // Não expõe o erro interno do Identity — apenas mensagem genérica
             DefinirToast("Não foi possível alterar a senha. Verifique a senha atual.", "danger");
-        }
 
         return RedirectToAction(nameof(Index));
     }
 
-    // ── Helpers privados ───────────────────────────────────────────────────
-
-    /// <summary>
-    /// Verifica os magic bytes do arquivo para confirmar que o conteúdo
-    /// corresponde ao tipo de imagem declarado no Content-Type.
-    /// Evita que um atacante renomeie um arquivo malicioso como .jpg/.png.
-    /// </summary>
     private static async Task<bool> ValidarMagicBytesFotoAsync(IFormFile foto)
     {
         var buffer = new byte[8];
@@ -231,16 +211,12 @@ public class ConfiguracaoController : UtilController
         var lidos = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length));
         if (lidos < 4) return false;
 
-        // JPEG: FF D8 FF
         if (buffer[0] == 0xFF && buffer[1] == 0xD8 && buffer[2] == 0xFF)
             return foto.ContentType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase);
 
-        // PNG: 89 50 4E 47 0D 0A 1A 0A
         if (buffer[0] == 0x89 && buffer[1] == 0x50 && buffer[2] == 0x4E && buffer[3] == 0x47)
             return foto.ContentType.Equals("image/png", StringComparison.OrdinalIgnoreCase);
 
-        // WebP: RIFF....WEBP (bytes 0-3 = RIFF, bytes 8-11 = WEBP — precisamos de 12 bytes)
-        // Lemos apenas 8 aqui; para WebP fazemos uma leitura adicional
         if (buffer[0] == 0x52 && buffer[1] == 0x49 && buffer[2] == 0x46 && buffer[3] == 0x46)
         {
             var bufferWebp = new byte[4];

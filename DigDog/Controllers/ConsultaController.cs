@@ -33,8 +33,9 @@ public class ConsultaController : UtilController
     {
         var idEmpresa = await ObterIdEmpresaAsync();
         var consultas = await _contexto.Consulta
+            .AsNoTracking()
             .Include(c => c.Pet)
-            .ThenInclude(p => p!.Cliente)
+                .ThenInclude(p => p!.Cliente)
             .Where(c => c.IdEmpresa == idEmpresa)
             .OrderByDescending(c => c.DataHora)
             .ToListAsync();
@@ -57,7 +58,6 @@ public class ConsultaController : UtilController
         consulta.IdEmpresa = idEmpresa;
         RemoverValidacaoUsuario();
 
-        // Validação de tamanho dos campos de texto livre
         ValidarTamanhoTexto(nameof(consulta.Motivo),      consulta.Motivo,      500);
         ValidarTamanhoTexto(nameof(consulta.Diagnostico), consulta.Diagnostico, 2000);
         ValidarTamanhoTexto(nameof(consulta.Prescricao),  consulta.Prescricao,  2000);
@@ -91,6 +91,7 @@ public class ConsultaController : UtilController
         if (idReal == null) return NotFound();
         var idEmpresa = await ObterIdEmpresaAsync();
         var consulta  = await _contexto.Consulta
+            .AsNoTracking()
             .Where(c => c.IdEmpresa == idEmpresa)
             .FirstOrDefaultAsync(c => c.Id == idReal);
         if (consulta == null) return NotFound();
@@ -110,21 +111,24 @@ public class ConsultaController : UtilController
         var idEmpresa = await ObterIdEmpresaAsync();
         RemoverValidacaoUsuario();
 
-        // Validação de tamanho dos campos de texto livre
         ValidarTamanhoTexto(nameof(consulta.Motivo),      consulta.Motivo,      500);
         ValidarTamanhoTexto(nameof(consulta.Diagnostico), consulta.Diagnostico, 2000);
         ValidarTamanhoTexto(nameof(consulta.Prescricao),  consulta.Prescricao,  2000);
-
-        var horarioOcupado = await _contexto.Consulta
-            .AnyAsync(c => c.IdEmpresa == idEmpresa && c.DataHora == consulta.DataHora && c.Id != idReal);
-        if (horarioOcupado)
-            ModelState.AddModelError(nameof(consulta.DataHora),
-                "Já existe uma consulta marcada para este dia e horário.");
 
         var consultaExistente = await _contexto.Consulta
             .Where(c => c.IdEmpresa == idEmpresa && c.Id == idReal)
             .FirstOrDefaultAsync();
         if (consultaExistente == null) return NotFound();
+
+        // Só checa conflito se data realmente mudou (economiza 1 query no caso comum)
+        if (consultaExistente.DataHora != consulta.DataHora)
+        {
+            var horarioOcupado = await _contexto.Consulta
+                .AnyAsync(c => c.IdEmpresa == idEmpresa && c.DataHora == consulta.DataHora && c.Id != idReal);
+            if (horarioOcupado)
+                ModelState.AddModelError(nameof(consulta.DataHora),
+                    "Já existe uma consulta marcada para este dia e horário.");
+        }
 
         if (ModelState.IsValid)
         {
@@ -137,7 +141,7 @@ public class ConsultaController : UtilController
             try { await _contexto.SaveChangesAsync(); }
             catch (DbUpdateConcurrencyException)
             {
-                if (!ConsultaExiste(idReal.Value, idEmpresa)) return NotFound();
+                if (!await ConsultaExisteAsync(idReal.Value, idEmpresa)) return NotFound();
                 throw;
             }
             await _logService.RegistrarAsync(
@@ -160,6 +164,7 @@ public class ConsultaController : UtilController
         if (idReal == null) return NotFound();
         var idEmpresa = await ObterIdEmpresaAsync();
         var consulta  = await _contexto.Consulta
+            .AsNoTracking()
             .Include(c => c.Pet)
             .Where(c => c.IdEmpresa == idEmpresa)
             .FirstOrDefaultAsync(c => c.Id == idReal);
@@ -195,14 +200,16 @@ public class ConsultaController : UtilController
         return RedirectToAction(nameof(Index));
     }
 
-    private bool ConsultaExiste(int id, int idEmpresa) =>
-        _contexto.Consulta.Any(c => c.Id == id && c.IdEmpresa == idEmpresa);
+    private async Task<bool> ConsultaExisteAsync(int id, int idEmpresa) =>
+        await _contexto.Consulta.AnyAsync(c => c.Id == id && c.IdEmpresa == idEmpresa);
 
     private async Task CarregarPets(int idEmpresa, int? idSelecionado = null)
     {
         var pets = await _contexto.Pet
+            .AsNoTracking()
             .Where(p => p.IdEmpresa == idEmpresa)
             .OrderBy(p => p.Nome)
+            .Select(p => new { p.Id, p.Nome })
             .ToListAsync();
         ViewData["IdPet"] = new SelectList(pets, "Id", "Nome", idSelecionado);
     }

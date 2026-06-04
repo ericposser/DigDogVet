@@ -1,5 +1,7 @@
 using DigDog.Data;
+using DigDog.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -7,45 +9,46 @@ using Microsoft.EntityFrameworkCore;
 namespace DigDog.Controllers;
 
 [Authorize]
-public class AssinaturaController : Controller
+public class AssinaturaController : UtilController
 {
     private readonly Contexto _contexto;
-    private readonly UserManager<IdentityUser> _gerenciadorUsuario;
 
-    public AssinaturaController(Contexto contexto, UserManager<IdentityUser> gerenciadorUsuario)
+    public AssinaturaController(
+        Contexto contexto,
+        UserManager<IdentityUser> gerenciadorUsuario,
+        IDataProtectionProvider provedorProtecao)
+        : base(gerenciadorUsuario, provedorProtecao, contexto)
     {
         _contexto = contexto;
-        _gerenciadorUsuario = gerenciadorUsuario;
     }
 
     public async Task<IActionResult> Index()
     {
-        var idUsuario = _gerenciadorUsuario.GetUserId(User);
-
-        var vinculo = await _contexto.EmpresaUsuario
-            .FirstOrDefaultAsync(eu => eu.IdUsuario == idUsuario);
-
-        if (vinculo == null) return NotFound();
+        var idEmpresa = await ObterIdEmpresaAsync();
 
         var assinatura = await _contexto.Assinatura
-            .Where(a => a.IdEmpresa == vinculo.IdEmpresa)
+            .AsNoTracking()
+            .Where(a => a.IdEmpresa == idEmpresa)
             .OrderByDescending(a => a.Id)
             .FirstOrDefaultAsync();
-        
+
         return View(assinatura);
     }
 
     [AllowAnonymous]
     public async Task<IActionResult> Inativa()
     {
-        // Tenta obter o idEmpresa se o usuário estiver logado
         if (User.Identity?.IsAuthenticated == true)
         {
-            var idUsuario = _gerenciadorUsuario.GetUserId(User);
-            var vinculo   = await _contexto.EmpresaUsuario
-                .FirstOrDefaultAsync(eu => eu.IdUsuario == idUsuario);
-
-            ViewBag.IdEmpresa = vinculo?.IdEmpresa;
+            // ObterIdEmpresaAsync lança se não houver vínculo; aqui é tolerante
+            try
+            {
+                ViewBag.IdEmpresa = await ObterIdEmpresaAsync();
+            }
+            catch (InvalidOperationException)
+            {
+                ViewBag.IdEmpresa = null;
+            }
         }
 
         return View();

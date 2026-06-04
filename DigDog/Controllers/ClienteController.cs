@@ -32,7 +32,9 @@ public class ClienteController : UtilController
     {
         var idEmpresa = await ObterIdEmpresaAsync();
         var clientes = await _contexto.Cliente
+            .AsNoTracking()
             .Where(c => c.IdEmpresa == idEmpresa)
+            .OrderBy(c => c.Nome)
             .ToListAsync();
         return View(clientes);
     }
@@ -69,6 +71,7 @@ public class ClienteController : UtilController
         if (idReal == null) return NotFound();
         var idEmpresa = await ObterIdEmpresaAsync();
         var cliente = await _contexto.Cliente
+            .AsNoTracking()
             .Where(c => c.IdEmpresa == idEmpresa)
             .FirstOrDefaultAsync(c => c.Id == idReal);
         if (cliente == null) return NotFound();
@@ -100,7 +103,7 @@ public class ClienteController : UtilController
             try { await _contexto.SaveChangesAsync(); }
             catch (DbUpdateConcurrencyException)
             {
-                if (!ClienteExiste(idReal.Value, idEmpresa)) return NotFound();
+                if (!await ClienteExisteAsync(idReal.Value, idEmpresa)) return NotFound();
                 throw;
             }
             await _logService.RegistrarAsync(
@@ -122,6 +125,7 @@ public class ClienteController : UtilController
         if (idReal == null) return NotFound();
         var idEmpresa = await ObterIdEmpresaAsync();
         var cliente = await _contexto.Cliente
+            .AsNoTracking()
             .Where(c => c.IdEmpresa == idEmpresa)
             .FirstOrDefaultAsync(c => c.Id == idReal);
         if (cliente == null) return NotFound();
@@ -155,6 +159,6 @@ public class ClienteController : UtilController
         return RedirectToAction(nameof(Index));
     }
 
-    private bool ClienteExiste(int id, int idEmpresa) =>
-        _contexto.Cliente.Any(c => c.Id == id && c.IdEmpresa == idEmpresa);
+    private async Task<bool> ClienteExisteAsync(int id, int idEmpresa) =>
+        await _contexto.Cliente.AnyAsync(c => c.Id == id && c.IdEmpresa == idEmpresa);
 }
