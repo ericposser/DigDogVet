@@ -60,9 +60,9 @@ public class Program
             opcoes.AccessDeniedPath = "/Erro/AcessoNegado";
 
             opcoes.Cookie.HttpOnly     = true;
-            opcoes.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-            opcoes.Cookie.SameSite     = SameSiteMode.Lax;
-            opcoes.Cookie.Name         = "DigDog.Auth";
+            opcoes.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            opcoes.Cookie.SameSite     = SameSiteMode.Strict;
+            opcoes.Cookie.Name         = "__Host-DigDog";
             opcoes.ExpireTimeSpan      = TimeSpan.FromHours(8);
             opcoes.SlidingExpiration   = true;
 
@@ -167,6 +167,7 @@ public class Program
             app.UseStatusCodePagesWithReExecute("/Erro/{0}");
         }
 
+        app.UseHttpsRedirection();
         app.UseRequestLocalization(opcoesLocalizacao);
 
         // ── Security Headers ───────────────────────────────────────────────
@@ -174,10 +175,10 @@ public class Program
         {
             var headers = contexto.Response.Headers;
 
-            headers["X-Frame-Options"]        = "SAMEORIGIN";
-            headers["X-Content-Type-Options"] = "nosniff";
-            headers["Referrer-Policy"]        = "strict-origin-when-cross-origin";
-            headers["Permissions-Policy"]     = "camera=(), microphone=(), geolocation=()";
+            headers["X-Frame-Options"]           = "SAMEORIGIN";
+            headers["X-Content-Type-Options"]    = "nosniff";
+            headers["Referrer-Policy"]           = "strict-origin-when-cross-origin";
+            headers["Permissions-Policy"]        = "camera=(), microphone=(), geolocation=()";
 
             if (!app.Environment.IsDevelopment())
                 headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
