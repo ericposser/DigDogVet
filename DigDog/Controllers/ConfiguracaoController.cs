@@ -231,4 +231,22 @@ public class ConfiguracaoController : UtilController
 
         return false;
     }
+    
+    [AllowAnonymous]
+    [ResponseCache(Duration = 86400, Location = ResponseCacheLocation.Client)]
+    public async Task<IActionResult> Foto(int idEmpresa, string? v = null)
+    {
+        // O parâmetro 'v' é só pra cache busting, ignorado aqui
+        var foto = await _contextoBase.Configuracao
+            .AsNoTracking()
+            .Where(c => c.IdEmpresa == idEmpresa)
+            .Select(c => new { c.FotoDados, c.FotoMimeType })
+            .FirstOrDefaultAsync();
+
+        if (foto?.FotoDados == null || foto.FotoDados.Length == 0)
+            return NotFound();
+
+        Response.Headers.CacheControl = "private, max-age=86400, immutable";
+        return File(foto.FotoDados, foto.FotoMimeType ?? "image/jpeg");
+    }
 }
