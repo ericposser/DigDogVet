@@ -464,6 +464,46 @@
     });
 </script>
 
+<script>
+    // ── Mostra o overlay durante navegação entre páginas ──────────────
+    (function () {
+        const overlay = document.getElementById('overlayCarregando');
+        if (!overlay) return;
+
+        // Esconde ao carregar a página atual
+        overlay.style.display = 'none';
+
+        // Mostra ao clicar em links internos
+        document.addEventListener('click', function (e) {
+            const link = e.target.closest('a');
+            if (!link) return;
+
+            const href = link.getAttribute('href');
+            if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+
+            // Ignora links externos, downloads e abre em nova aba
+            if (link.target === '_blank') return;
+            if (link.hasAttribute('download')) return;
+            if (link.hostname && link.hostname !== window.location.hostname) return;
+
+            // Mostra o overlay
+            overlay.style.display = 'flex';
+        });
+
+        // Mostra ao enviar formulários
+        document.addEventListener('submit', function (e) {
+            const form = e.target;
+            if (form.target === '_blank') return;
+            overlay.style.display = 'flex';
+        });
+
+        // Esconde se o usuário voltar com o botão "Voltar" do navegador
+        window.addEventListener('pageshow', function () {
+            overlay.style.display = 'none';
+        });
+    })();
+</script>
+
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

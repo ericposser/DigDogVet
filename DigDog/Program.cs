@@ -18,7 +18,7 @@ public class Program
 
         // ── Banco de Dados ─────────────────────────────────────────────────
         var connectionString = (builder.Configuration.GetConnectionString("DefaultConnection") ?? "")
-            + ";MaximumPoolSize=50;MinimumPoolSize=5;ConnectionTimeout=30;";
+                               + ";MaximumPoolSize=50;MinimumPoolSize=20;ConnectionTimeout=30;ConnectionLifeTime=300;";
 
         builder.Services.AddDbContext<Contexto>(opcoes =>
             opcoes.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
