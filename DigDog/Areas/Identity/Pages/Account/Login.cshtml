@@ -3,77 +3,261 @@
 @{
     Layout = "/Areas/Identity/Pages/_LayoutAutenticacao.cshtml";
     ViewData["Title"] = "Entrar";
+    var temErroGeral = ViewData.ModelState.ContainsKey(string.Empty)
+                       && ViewData.ModelState[string.Empty]!.Errors.Any();
 }
 
-<div class="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
-    <div class="container" style="max-width: 32rem">
-        <div class="d-flex flex-column gap-4">
+<style>
+    .login-wrapper {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        background: var(--cui-tertiary-bg, #f3f4f7);
+    }
 
-            <!-- Logo / Título -->
-            <div class="text-center">
-                <h2 class="fw-bold fs-3"><i class="cil-paw me-2"></i> DigDogVet</h2>
-                <p class="text-body-secondary small">Sistema de PetShops e Clínicas Veterinária</p>
-            </div>
+    .login-container {
+        width: 100%;
+        max-width: 28rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        animation: fadeSlide .3s ease both;
+    }
 
-            <!-- Card de Login -->
-            <div class="card p-4">
-                <div class="card-body d-flex flex-column gap-4">
-                    <h2 class="h5 text-center">Acesse sua conta</h2>
+    @@keyframes fadeSlide {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
 
-                    <form method="post" class="row gap-3" autocomplete="off">
-                        @Html.AntiForgeryToken()
-                        
-                        <!-- E-mail -->
-                        <div>
-                            <label class="form-label" asp-for="Input.Email">E-mail</label>
-                            <input class="form-control" asp-for="Input.Email"
-                                   type="email" placeholder="seu@email.com" autocomplete="off" />
-                            <span asp-validation-for="Input.Email" class="text-danger small"></span>
+    /* ── Brand ── */
+    .login-brand {
+        text-align: center;
+    }
+
+    .login-brand-icon {
+        font-size: 2.8rem;
+        color: var(--cui-body-color, #333);
+        margin-bottom: .75rem;
+        display: block;
+        opacity: .9;
+    }
+
+    .login-brand h1 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: .3rem;
+        letter-spacing: -.01em;
+    }
+
+    .login-brand p {
+        font-size: .8rem;
+        color: var(--cui-secondary-color, #6c757d);
+        margin: 0;
+    }
+
+    /* ── Card ── */
+    .login-card {
+        background: var(--cui-body-bg, #fff);
+        border-radius: 1rem;
+        border: 1px solid var(--cui-border-color, #dee2e6);
+        box-shadow: 0 2px 16px rgba(0, 0, 0, .06);
+        overflow: hidden;
+    }
+
+    .login-card-body {
+        padding: 2.75rem 2.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.75rem;
+    }
+
+    /* ── Labels ── */
+    .campo-label {
+        font-size: .82rem;
+        font-weight: 600;
+        color: var(--cui-body-color, #333);
+        margin-bottom: .5rem;
+        display: block;
+    }
+
+    /* ── Inputs ── */
+    .login-card-body .form-control {
+        border-radius: .6rem;
+        border: 1px solid var(--cui-border-color, #dee2e6);
+        font-size: .9rem;
+        padding: .75rem 1rem;
+        transition: border-color .15s, box-shadow .15s;
+        background: var(--cui-body-bg, #fff);
+        color: var(--cui-body-color, #333);
+    }
+
+    .login-card-body .form-control:focus {
+        border-color: var(--cui-primary, #321fdb);
+        box-shadow: 0 0 0 3px rgba(50, 31, 219, .1);
+        outline: none;
+    }
+
+    .login-card-body .input-group .form-control {
+        border-right: none;
+        border-radius: .6rem 0 0 .6rem;
+    }
+
+    .login-card-body .input-group .btn-olho {
+        border-radius: 0 .6rem .6rem 0;
+        border: 1px solid var(--cui-border-color, #dee2e6);
+        border-left: none;
+        padding: .75rem 1rem;
+        color: var(--cui-secondary-color, #6c757d);
+        background: var(--cui-body-bg, #fff);
+        transition: background .15s, color .15s;
+    }
+
+    .login-card-body .input-group .btn-olho:hover {
+        background: var(--cui-tertiary-bg, #f3f4f7);
+        color: var(--cui-body-color, #333);
+    }
+
+    /* ── Checkbox ── */
+    .login-check {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        cursor: pointer;
+    }
+
+    .login-check span {
+        font-size: .83rem;
+        color: var(--cui-secondary-color, #6c757d);
+    }
+
+    /* ── Separador ── */
+    .login-separador {
+        height: 1px;
+        background: var(--cui-border-color, #dee2e6);
+        opacity: .6;
+    }
+
+    /* ── Botão ── */
+    .btn-entrar {
+        border-radius: .6rem;
+        font-size: .9rem;
+        font-weight: 600;
+        padding: .7rem;
+        letter-spacing: .01em;
+        transition: opacity .15s, transform .1s;
+        border: none;
+    }
+
+    .btn-entrar:active {
+        transform: scale(.99);
+    }
+
+    /* ── Erro geral ── */
+    .erro-geral {
+        font-size: .82rem;
+        color: var(--cui-danger, #e55353);
+        display: flex;
+        align-items: flex-start;
+        gap: .5rem;
+        padding: .65rem .9rem;
+        background: rgba(229, 83, 83, .08);
+        border-radius: .5rem;
+        border: 1px solid rgba(229, 83, 83, .2);
+        line-height: 1.4;
+    }
+
+    .erro-geral i {
+        flex-shrink: 0;
+        margin-top: .05rem;
+    }
+
+    .erro-geral ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+</style>
+
+<div class="login-wrapper">
+    <div class="login-container">
+
+        @* ── Brand ── *@
+        <div class="login-brand">
+            <i class="cil-paw login-brand-icon"></i>
+            <h1>DigDogVet</h1>
+            <p>Gestão completa para PetShop e Clínica Veterinária</p>
+        </div>
+
+        @* ── Card ── *@
+        <div class="login-card">
+            <div class="login-card-body">
+
+                <form method="post" autocomplete="off">
+                    @Html.AntiForgeryToken()
+
+                    @if (temErroGeral)
+                    {
+                        <div class="erro-geral">
+                            <i class="cil-warning"></i>
+                            <div asp-validation-summary="ModelOnly"></div>
                         </div>
+                    }
 
-                        <!-- Senha -->
-                        <div>
-                            <label class="form-label" asp-for="Input.Password">Senha</label>
-                            <div class="input-group">
-                                <input class="form-control" asp-for="Input.Password"
-                                       type="password" placeholder="Sua senha" autocomplete="off" />
-                                <button type="button" class="btn btn-outline-secondary" onclick="alternarSenha(this)">
-                                    <i class="cil-lock-locked"></i>
-                                </button>
-                            </div>
-                            <span asp-validation-for="Input.Password" class="text-danger small"></span>
-                        </div>
+                    <br>
+                    
+                    <div>
+                        <label class="campo-label" asp-for="Input.Email">E-mail</label>
+                        <input class="form-control" asp-for="Input.Email"
+                               type="email" placeholder="seu@email.com" autocomplete="off" />
+                        <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                    </div>
 
-                        <!-- Lembrar-me -->
-                        <div>
-                            <label class="form-check">
-                                <input class="form-check-input" asp-for="Input.RememberMe" type="checkbox" />
-                                <span class="form-check-label">Lembrar-me neste dispositivo</span>
-                            </label>
-                        </div>
-
-                        <!-- Botão -->
-                        <!-- Botão -->
-                        <div>
-                            <button class="btn btn-primary w-100" type="submit" id="btnEntrar">
-                                <span id="btnTexto"><i class="cil-account-logout me-1"></i> Entrar</span>
-                                <span id="btnCarregando" class="d-none">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Entrando...
-                                </span>
+                    <br>
+                    
+                    <div>
+                        <label class="campo-label" asp-for="Input.Password">Senha</label>
+                        <div class="input-group">
+                            <input class="form-control" asp-for="Input.Password"
+                                   type="password" placeholder="Sua senha" autocomplete="off" />
+                            <button type="button" class="btn-olho btn" onclick="alternarSenha(this)" title="Mostrar / ocultar senha">
+                                <i class="cil-lock-locked"></i>
                             </button>
                         </div>
-                    </form>
-                </div>
+                        <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                    </div>
+
+                    <br>
+                    
+                    <div>
+                        <label class="login-check">
+                            <input class="form-check-input" asp-for="Input.RememberMe" type="checkbox" />
+                            <span>Lembrar-me neste dispositivo</span>
+                        </label>
+                    </div>
+
+                    <br>
+                    
+                    <div class="login-separador"></div>
+
+                    <br>
+                    
+                    <div>
+                        <button class="btn btn-primary w-100 btn-entrar" type="submit" id="btnEntrar">
+                            <span id="btnTexto">Entrar</span>
+                            <span id="btnCarregando" class="d-none">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Entrando...
+                            </span>
+                        </button>
+                    </div>
+
+                </form>
+
             </div>
-
-            <!-- Link para Registro -->
-            @* <div class="text-center text-body-secondary"> *@
-            @*     Não tem uma conta? *@
-            @*     <a asp-page="./Register">Cadastre-se</a> *@
-            @* </div> *@
-
         </div>
+
     </div>
 </div>
 
@@ -91,8 +275,8 @@
     }
 
     document.querySelector('form').addEventListener('submit', function () {
-        const btn       = document.getElementById('btnEntrar');
-        const texto     = document.getElementById('btnTexto');
+        const btn        = document.getElementById('btnEntrar');
+        const texto      = document.getElementById('btnTexto');
         const carregando = document.getElementById('btnCarregando');
 
         btn.disabled = true;
@@ -100,4 +284,3 @@
         carregando.classList.remove('d-none');
     });
 </script>
-

@@ -73,7 +73,7 @@
     .paleta-cor.selecionada  { border-color: #000; transform: scale(1.15); }
 </style>
 
-<form asp-action="GerarPdf" method="post" id="formReceituario">
+<form asp-action="GerarPdf" method="post" id="formReceituario" data-download="true">
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="IdConsulta" />
     <input type="hidden" asp-for="IdEmpresa" />
@@ -473,18 +473,25 @@
             });
         }
 
-        // ── Loading: esconde overlay quando o PDF chega ───────────────────
         document.getElementById('formReceituario').addEventListener('submit', function () {
-            // O site.js já exibe o overlay via evento submit.
-            // Usamos um iframe oculto para detectar quando o download terminou
-            // (o browser não dispara evento no download direto de file response).
-            // Solução: polling — esconde o overlay após intervalo fixo (3s),
-            // tempo suficiente para o servidor gerar e o browser iniciar o download.
+            const overlay = document.getElementById('overlayCarregando');
+            if (overlay) overlay.style.display = 'flex';  // exibe manualmente
+
+            const intervalo = setInterval(function () {
+                if (document.cookie.indexOf('downloadPronto=') !== -1) {
+                    document.cookie = 'downloadPronto=; Max-Age=0; path=/';
+                    if (overlay) overlay.style.display = 'none';
+                    clearInterval(intervalo);
+                }
+            }, 400);
+
+            // Segurança: esconde após 60s no máximo
             setTimeout(function () {
-                const overlay = document.getElementById('overlayCarregando');
-                if (overlay) overlay.classList.remove('ativo');
-            }, 3000);
+                clearInterval(intervalo);
+                if (overlay) overlay.style.display = 'none';
+            }, 60000);
         });
+
 
         // ── Inicialização ─────────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', () => {

@@ -133,6 +133,13 @@ public class ReceituarioController : UtilController
         var pdfBytes    = GerarDocumentoPdf(modelo, dadosClinica.FotoBytes);
         var nomeArquivo = $"Receituario_{modelo.NomeAnimal}_{DateTime.Today:yyyyMMdd}.pdf";
 
+        Response.Cookies.Append("downloadPronto", "1", new CookieOptions
+        {
+            HttpOnly = false,
+            SameSite = SameSiteMode.Lax,
+            Expires  = DateTimeOffset.UtcNow.AddMinutes(1)
+        });
+        
         return File(pdfBytes, "application/pdf", nomeArquivo);
     }
 
