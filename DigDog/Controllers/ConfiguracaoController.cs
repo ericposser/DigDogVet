@@ -15,7 +15,7 @@ public class ConfiguracaoController : UtilController
     private static readonly HashSet<string> _mimesFotoPermitidos =
         new(StringComparer.OrdinalIgnoreCase) { "image/jpeg", "image/png", "image/webp" };
 
-    private const long TamanhoMaximoFotoBytes = 5 * 1024 * 1024;
+    private const long TamanhoMaximoFotoBytes = 1024 * 1024;
 
     private readonly Contexto _contexto;
     private readonly UserManager<IdentityUser> _gerenciadorUsuarioLocal;
@@ -57,7 +57,7 @@ public class ConfiguracaoController : UtilController
         if (foto != null && foto.Length > 0)
         {
             if (foto.Length > TamanhoMaximoFotoBytes)
-                ModelState.AddModelError("foto", "A foto não pode exceder 5 MB.");
+                ModelState.AddModelError("foto", "A foto não pode exceder 1 MB.");
             else if (!_mimesFotoPermitidos.Contains(foto.ContentType))
                 ModelState.AddModelError("foto", "Formato inválido. Envie uma imagem JPEG, PNG ou WebP.");
             else if (!await ValidarMagicBytesFotoAsync(foto))
