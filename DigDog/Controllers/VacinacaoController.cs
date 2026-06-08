@@ -35,14 +35,15 @@ public class VacinacaoController : UtilController
     [RequerPermissao(Permissao.VacinacaoVisualizar)]
     public async Task<IActionResult> Index()
     {
-        var idEmpresa  = await ObterIdEmpresaAsync();
+        var idEmpresa = await ObterIdEmpresaAsync();
 
         var vacinacoes = await _contexto.Vacinacao
             .AsNoTracking()
             .Include(v => v.Pet)
             .Include(v => v.Vacina)
             .Where(v => v.IdEmpresa == idEmpresa)
-            .OrderBy(v => v.DataProximaDose)
+            .OrderBy(v => v.IdPet)
+            .ThenBy(v => v.DataProximaDose)
             .ToListAsync();
 
         var idsDosPets = vacinacoes
@@ -50,7 +51,6 @@ public class VacinacaoController : UtilController
             .Select(v => v.IdPet)
             .Distinct().ToList();
 
-        // Projeção: só Id e Token, não a entidade inteira
         var tokensAtivos = await _contexto.CarteiraToken
             .AsNoTracking()
             .Where(t => t.IdEmpresa == idEmpresa && t.Ativo && idsDosPets.Contains(t.IdPet))
