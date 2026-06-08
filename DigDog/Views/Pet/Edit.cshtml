@@ -19,14 +19,14 @@
 
                 <!-- Nome -->
                 <div class="col-md-6">
-                    <label asp-for="Nome" class="form-label fw-semibold"></label>
+                    <label asp-for="Nome" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <input asp-for="Nome" class="form-control" />
                     <span asp-validation-for="Nome" class="text-danger small"></span>
                 </div>
 
                 <!-- Tutor -->
                 <div class="col-md-6">
-                    <label asp-for="IdCliente" class="form-label fw-semibold"></label>
+                    <label asp-for="IdCliente" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <select asp-for="IdCliente" class="form-select"
                             asp-items="ViewBag.IdCliente">
                         <option value="">— Selecione o tutor —</option>
@@ -36,7 +36,7 @@
 
                 <!-- Espécie -->
                 <div class="col-md-4">
-                    <label asp-for="Especie" class="form-label fw-semibold"></label>
+                    <label asp-for="Especie" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <select asp-for="Especie" class="form-select">
                         <option value="">— Selecione —</option>
                         <option value="Cachorro">Cachorro</option>
@@ -55,7 +55,7 @@
 
                 <!-- Sexo -->
                 <div class="col-md-4">
-                    <label asp-for="Sexo" class="form-label fw-semibold"></label>
+                    <label asp-for="Sexo" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <select asp-for="Sexo" class="form-select">
                         <option value="">— Selecione —</option>
                         <option value="Macho">Macho</option>

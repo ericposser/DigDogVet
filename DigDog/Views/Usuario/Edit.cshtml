@@ -22,7 +22,7 @@
 
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label asp-for="Nome" class="form-label fw-semibold"></label>
+                    <label asp-for="Nome" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <input asp-for="Nome" class="form-control" placeholder="Nome completo" />
                     <span asp-validation-for="Nome" class="text-danger small"></span>
                 </div>
@@ -40,7 +40,7 @@
                     <span asp-validation-for="Telefone" class="text-danger small"></span>
                 </div>
                 <div class="col-md-6">
-                    <label asp-for="IdRole" class="form-label fw-semibold"></label>
+                    <label asp-for="IdRole" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <select asp-for="IdRole" asp-items="ViewBag.IdRole"
                             class="form-select">
                         <option value="">— Selecione um perfil —</option>

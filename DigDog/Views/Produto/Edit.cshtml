@@ -20,13 +20,13 @@
             <div class="row g-3">
 
                 <div class="col-md-8">
-                    <label asp-for="Nome" class="form-label fw-semibold"></label>
+                    <label asp-for="Nome" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <input asp-for="Nome" class="form-control" />
                     <span asp-validation-for="Nome" class="text-danger small"></span>
                 </div>
 
                 <div class="col-md-4">
-                    <label asp-for="Estoque" class="form-label fw-semibold"></label>
+                    <label asp-for="Estoque" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <input asp-for="Estoque" class="form-control" type="number" min="0" />
                     <span asp-validation-for="Estoque" class="text-danger small"></span>
                 </div>

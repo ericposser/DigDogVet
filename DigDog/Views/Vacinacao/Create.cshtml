@@ -29,7 +29,7 @@
 
                 <!-- Pet -->
                 <div class="col-md-6">
-                    <label asp-for="IdPet" class="form-label fw-semibold"></label>
+                    <label asp-for="IdPet" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <select asp-for="IdPet" class="form-select" asp-items="ViewBag.IdPet">
                         <option value="">— Selecione o pet —</option>
                     </select>
@@ -38,7 +38,7 @@
 
                 <!-- Data de Aplicação -->
                 <div class="col-md-6">
-                    <label asp-for="DataAplicacao" class="form-label fw-semibold"></label>
+                    <label asp-for="DataAplicacao" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <input asp-for="DataAplicacao" class="form-control" type="date"
                            max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                     <span asp-validation-for="DataAplicacao" class="text-danger small"></span>
@@ -67,7 +67,7 @@
                 <!-- Seletores -->
                 <div class="row g-2 align-items-end mb-2">
                     <div class="col-md-5">
-                        <label class="form-label fw-semibold">Vacina</label>
+                        <label class="form-label fw-semibold">Vacina</label><span class="text-primary ms-1">*</span>
                         <select id="selectVacina" class="form-select">
                             <option value="">— Selecione —</option>
                             @foreach (var v in ViewBag.IdVacina as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)

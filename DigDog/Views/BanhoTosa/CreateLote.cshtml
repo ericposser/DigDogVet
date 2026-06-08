@@ -25,7 +25,7 @@
 
                 @* Pet  *@
                 <div class="col-md-6">
-                    <label asp-for="IdPet" class="form-label fw-semibold"></label>
+                    <label asp-for="IdPet" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <select asp-for="IdPet" class="form-select" asp-items="ViewBag.IdPet">
                         <option value="">— Selecione o pet —</option>
                     </select>
@@ -34,7 +34,7 @@
 
                 @* Tipo de Serviço  *@
                 <div class="col-md-6">
-                    <label asp-for="TipoServico" class="form-label fw-semibold"></label>
+                    <label asp-for="TipoServico" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <select asp-for="TipoServico" class="form-select">
                         <option value="">— Selecione —</option>
                         <option value="Banho">Banho</option>
@@ -49,7 +49,7 @@
 
                 @* Dias da Semana  *@
                 <div class="col-12">
-                    <label class="form-label fw-semibold">Dias da Semana</label>
+                    <label class="form-label fw-semibold">Dias da Semana</label><span class="text-primary ms-1">*</span>
                     <div class="d-flex flex-wrap gap-2" id="diasSemanaContainer">
                         @{
                             var diasNomes = new[] {
@@ -73,27 +73,27 @@
                             </div>
                         }
                     </div>
-                    <span class="text-danger small" id="erroDiasSemana"></span>
+                    <span class="text-danger small d-block mt-1" id="erroDiasSemana"></span>
                 </div>
 
                 @* Horário  *@
                 <div class="col-md-4">
-                    <label for="horario" class="form-label fw-semibold">Horário</label>
-                    <input type="time" id="horario" name="horario" class="form-control" />
+                    <label for="horario" class="form-label fw-semibold">Horário</label><span class="text-primary ms-1">*</span>
+                    <input type="time" id="horario" name="horario" class="form-control" required/>
                     <span class="text-danger small" id="erroHorario"></span>
                 </div>
 
                 @* Data Início  *@
                 <div class="col-md-4">
-                    <label for="dataInicio" class="form-label fw-semibold">Data de Início</label>
-                    <input type="date" id="dataInicio" name="dataInicio" class="form-control" />
+                    <label for="dataInicio" class="form-label fw-semibold">Data de Início</label><span class="text-primary ms-1">*</span>
+                    <input type="date" id="dataInicio" name="dataInicio" class="form-control" required/>
                     <span class="text-danger small" id="erroDataInicio"></span>
                 </div>
 
                 @* Data Fim  *@
                 <div class="col-md-4">
-                    <label for="dataFim" class="form-label fw-semibold">Data de Fim</label>
-                    <input type="date" id="dataFim" name="dataFim" class="form-control" />
+                    <label for="dataFim" class="form-label fw-semibold">Data de Fim</label><span class="text-primary ms-1">*</span>
+                    <input type="date" id="dataFim" name="dataFim" class="form-control" required/>
                     <span class="text-danger small" id="erroDataFim"></span>
                 </div>
 
@@ -154,7 +154,24 @@
             this.value = numero.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         });
 
-        document.querySelector('form').addEventListener('submit', function () {
+        document.querySelector('form').addEventListener('submit', function (e) {
+            // ── Valida dias da semana ─────────────────────────────────────────
+            const diasMarcados = document.querySelectorAll('input[name="diasSemana"]:checked');
+            const erroDias = document.getElementById('erroDiasSemana');
+
+            if (diasMarcados.length === 0) {
+                erroDias.textContent = 'Selecione ao menos um dia da semana.';
+                document.getElementById('diasSemanaContainer').classList.add('border', 'border-danger', 'rounded', 'p-2');
+                erroDias.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            } else {
+                erroDias.textContent = '';
+                document.getElementById('diasSemanaContainer').classList.remove('border', 'border-danger', 'rounded', 'p-2');
+            }
+
+            // ── Converte valor monetário antes de enviar ──────────────────────
             $(campValor).rules && $(campValor).rules('remove');
             let v = campValor.value.replace(/\./g, '').replace(',', '.');
             campValor.value = isNaN(parseFloat(v)) ? '' : parseFloat(v).toFixed(2);
@@ -216,7 +233,14 @@
 
         // Escuta mudanças nos campos que afetam a prévia
         document.querySelectorAll('input[name="diasSemana"]')
-            .forEach(el => el.addEventListener('change', atualizarPrevia));
+            .forEach(el => el.addEventListener('change', function () {
+                const diasMarcados = document.querySelectorAll('input[name="diasSemana"]:checked');
+                if (diasMarcados.length > 0) {
+                    document.getElementById('erroDiasSemana').textContent = '';
+                    document.getElementById('diasSemanaContainer').classList.remove('border', 'border-danger', 'rounded', 'p-2');
+                }
+                atualizarPrevia();
+            }));
         document.getElementById('horario').addEventListener('input', atualizarPrevia);
         document.getElementById('dataInicio').addEventListener('input', atualizarPrevia);
         document.getElementById('dataFim').addEventListener('input', atualizarPrevia);

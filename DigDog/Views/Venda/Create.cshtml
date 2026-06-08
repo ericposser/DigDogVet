@@ -31,7 +31,7 @@
 
                 <!-- Produto -->
                 <div class="col-md-6">
-                    <label asp-for="IdProduto" class="form-label fw-semibold"></label>
+                    <label asp-for="IdProduto" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <select asp-for="IdProduto" class="form-select" asp-items="ViewBag.IdProduto"
                             id="selectProduto">
                         <option value="">— Selecione o produto —</option>
@@ -41,7 +41,7 @@
 
                 <!-- Quantidade -->
                 <div class="col-md-3">
-                    <label asp-for="Quantidade" class="form-label fw-semibold"></label>
+                    <label asp-for="Quantidade" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <input asp-for="Quantidade" class="form-control" type="number"
                            min="1" id="campQuantidade" placeholder="0" />
                     <span asp-validation-for="Quantidade" class="text-danger small"></span>

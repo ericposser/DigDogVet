@@ -18,7 +18,7 @@
 
                 <!-- Pet -->
                 <div class="col-md-6">
-                    <label asp-for="IdPet" class="form-label fw-semibold"></label>
+                    <label asp-for="IdPet" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <select asp-for="IdPet" class="form-select" asp-items="ViewBag.IdPet">
                         <option value="">— Selecione o pet —</option>
                     </select>
@@ -27,7 +27,7 @@
 
                 <!-- Vacina -->
                 <div class="col-md-6">
-                    <label asp-for="IdVacina" class="form-label fw-semibold"></label>
+                    <label asp-for="IdVacina" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <select asp-for="IdVacina" class="form-select" asp-items="ViewBag.IdVacina">
                         <option value="">— Selecione a vacina —</option>
                     </select>
@@ -51,7 +51,7 @@
 
                 <!-- Data de Aplicação -->
                 <div class="col-md-4">
-                    <label asp-for="DataAplicacao" class="form-label fw-semibold"></label>
+                    <label asp-for="DataAplicacao" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <input asp-for="DataAplicacao" class="form-control" type="date"
                            max="@DateTime.Today.ToString("yyyy-MM-dd")" />
                     <span asp-validation-for="DataAplicacao" class="text-danger small"></span>

@@ -3,7 +3,7 @@
 @* Nome do perfil *@
 <div class="row g-3 mb-4">
     <div class="col-md-6">
-        <label asp-for="Nome" class="form-label fw-semibold"></label>
+        <label asp-for="Nome" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
         <input asp-for="Nome" class="form-control"
                placeholder="Ex: Recepcionista, Veterinário..." />
         <span asp-validation-for="Nome" class="text-danger small"></span>

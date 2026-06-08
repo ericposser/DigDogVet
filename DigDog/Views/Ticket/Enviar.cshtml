@@ -33,7 +33,7 @@
                     <div class="mb-4">
                         <label class="form-label fw-semibold">
                             <i class="cil-tag me-1"></i>Tipo do Ticket
-                        </label>
+                        </label><span class="text-primary ms-1">*</span>
                         <div class="d-flex gap-3">
 
                             <div class="flex-fill">
@@ -64,7 +64,7 @@
                         <div class="col-12">
                             <label asp-for="Titulo" class="form-label fw-semibold">
                                 <i class="cil-pencil me-1"></i>Título
-                            </label>
+                            </label><span class="text-primary ms-1">*</span>
                             <input asp-for="Titulo" class="form-control" placeholder="Ex: Botão de salvar não funciona na tela de pets" maxlength="200" />
                             <span asp-validation-for="Titulo" class="text-danger small"></span>
                             <div class="form-text">Seja objetivo, um bom título facilita a triagem.</div>
@@ -76,7 +76,7 @@
                         <div class="col-12">
                             <label asp-for="Descricao" class="form-label fw-semibold">
                                 <i class="cil-description me-1"></i>Descrição
-                            </label>
+                            </label><span class="text-primary ms-1">*</span>
                             <textarea asp-for="Descricao" class="form-control" rows="5"
                                 placeholder="Descreva o problema ou a melhoria com o máximo de detalhes possível. Inclua os passos para reproduzir, se aplicável." maxlength="2000"></textarea>
                             <span asp-validation-for="Descricao" class="text-danger small"></span>

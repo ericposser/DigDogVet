@@ -18,7 +18,7 @@
 
                 <!-- Pet -->
                 <div class="col-md-6">
-                    <label asp-for="IdPet" class="form-label fw-semibold"></label>
+                    <label asp-for="IdPet" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <select asp-for="IdPet" class="form-select" asp-items="ViewBag.IdPet">
                         <option value="">— Selecione o pet —</option>
                     </select>
@@ -27,14 +27,14 @@
 
                 <!-- Data e Hora -->
                 <div class="col-md-6">
-                    <label asp-for="DataHora" class="form-label fw-semibold"></label>
+                    <label asp-for="DataHora" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <input asp-for="DataHora" class="form-control" type="datetime-local" />
                     <span asp-validation-for="DataHora" class="text-danger small"></span>
                 </div>
 
                 <!-- Tipo de Serviço -->
                 <div class="col-md-6">
-                    <label asp-for="TipoServico" class="form-label fw-semibold"></label>
+                    <label asp-for="TipoServico" class="form-label fw-semibold"></label><span class="text-primary ms-1">*</span>
                     <select asp-for="TipoServico" class="form-select">
                         <option value="">— Selecione —</option>
                         <option value="Banho">Banho</option>
