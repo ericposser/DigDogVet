@@ -48,8 +48,8 @@
                     var temToken   = tokensAtivos.TryGetValue(petId, out var linkPublico);
                     var temVencida = vacinacoes.Any(v => v.DataProximaDose.HasValue && v.DataProximaDose.Value < DateTime.Today);
                     var temProxima = vacinacoes.Any(v => v.DataProximaDose.HasValue
-                        && v.DataProximaDose.Value >= DateTime.Today
-                        && (v.DataProximaDose.Value - DateTime.Today).TotalDays <= 7);
+                                                         && v.DataProximaDose.Value >= DateTime.Today
+                                                         && (v.DataProximaDose.Value - DateTime.Today).TotalDays <= 7);
 
                     // Prioridade de cor: vencida > proxima > normal
                     var corCard     = temVencida ? "danger"  : temProxima ? "warning"  : "primary";
@@ -150,76 +150,81 @@
                                         <table id="tabela-@petIdStr"
                                                class="table table-striped table-hover align-middle w-100">
                                             <thead>
-                                                <tr>
-                                                    <th>Vacina</th>
-                                                    <th>Dose</th>
-                                                    <th>Data de Aplicação</th>
-                                                    <th>Próxima Dose</th>
-                                                    <th class="text-end">Ações</th>
-                                                </tr>
+                                            <tr>
+                                                <th>Vacina</th>
+                                                <th>Dose</th>
+                                                <th>Data de Aplicação</th>
+                                                <th>Próxima Dose</th>
+                                                <th class="text-end">Ações</th>
+                                            </tr>
                                             </thead>
                                             <tbody>
-                                                @foreach (var vacinacao in vacinacoes)
+                                            @foreach (var vacinacao in vacinacoes)
+                                            {
+                                                var proximaDoseClass = "";
+                                                if (vacinacao.DataProximaDose.HasValue)
                                                 {
-                                                    var proximaDoseClass = "";
-                                                    if (vacinacao.DataProximaDose.HasValue)
-                                                    {
-                                                        var dias = (vacinacao.DataProximaDose.Value - DateTime.Today).TotalDays;
-                                                        if (dias < 0)      proximaDoseClass = "text-danger fw-semibold";
-                                                        else if (dias <= 7) proximaDoseClass = "text-warning fw-semibold";
-                                                    }
-                                                    <tr>
-                                                        <td class="fw-semibold">@(vacinacao.Vacina?.Nome ?? "—")</td>
-                                                        <td>@(vacinacao.Dose ?? "—")</td>
-                                                        <td data-order="@vacinacao.DataAplicacao.ToString("yyyy-MM-dd")">
-                                                            @vacinacao.DataAplicacao.ToString("dd/MM/yyyy")
-                                                        </td>
-                                                        <td class="@proximaDoseClass"
-                                                            data-order="@(vacinacao.DataProximaDose.HasValue ? vacinacao.DataProximaDose.Value.ToString("yyyy-MM-dd") : "9999-99-99")">
-                                                            @if (vacinacao.DataProximaDose.HasValue)
-                                                            {
-                                                                var dias = (vacinacao.DataProximaDose.Value - DateTime.Today).TotalDays;
-                                                                @vacinacao.DataProximaDose.Value.ToString("dd/MM/yyyy")
-                                                                if (dias < 0)
-                                                                {
-                                                                    <span class="badge bg-danger ms-1">Vencida</span>
-                                                                }
-                                                                else if (dias <= 7)
-                                                                {
-                                                                    <span class="badge bg-warning ms-1">Em breve</span>
-                                                                }
-                                                            }
-                                                            else
-                                                            {
-                                                                <span>—</span>
-                                                            }
-                                                        </td>
-                                                        <td class="text-end">
-                                                            <div class="d-flex gap-2 justify-content-end">
-                                                                <a asp-action="Edit"
-                                                                   asp-route-id="@criptografarId(vacinacao.Id)"
-                                                                   class="btn btn-outline-primary btn-sm"
-                                                                   title="Editar"
-                                                                   data-coreui-toggle="tooltip">
-                                                                    <i class="cil-pencil"></i>
-                                                                </a>
-                                                                <a asp-action="Delete"
-                                                                   asp-route-id="@criptografarId(vacinacao.Id)"
-                                                                   class="btn btn-outline-danger btn-sm"
-                                                                   title="Excluir"
-                                                                   data-coreui-toggle="tooltip">
-                                                                    <i class="cil-trash"></i>
-                                                                </a>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
+                                                    var dias = (vacinacao.DataProximaDose.Value - DateTime.Today).TotalDays;
+                                                    if (dias < 0)      proximaDoseClass = "text-danger fw-semibold";
+                                                    else if (dias <= 7) proximaDoseClass = "text-warning fw-semibold";
                                                 }
+                                                <tr>
+                                                    <td class="fw-semibold">@(vacinacao.Vacina?.Nome ?? "—")</td>
+                                                    <td>@(vacinacao.Dose ?? "—")</td>
+                                                    <td data-order="@vacinacao.DataAplicacao.ToString("yyyy-MM-dd")">
+                                                        @vacinacao.DataAplicacao.ToString("dd/MM/yyyy")
+                                                    </td>
+                                                    <td class="@proximaDoseClass"
+                                                        data-order="@(vacinacao.DataProximaDose.HasValue ? vacinacao.DataProximaDose.Value.ToString("yyyy-MM-dd") : "9999-99-99")">
+                                                        @if (vacinacao.DataProximaDose.HasValue)
+                                                        {
+                                                            var dias = (vacinacao.DataProximaDose.Value - DateTime.Today).TotalDays;
+                                                            @vacinacao.DataProximaDose.Value.ToString("dd/MM/yyyy")
+                                                            if (dias < 0)
+                                                            {
+                                                                <span class="badge bg-danger ms-1">Vencida</span>
+                                                            }
+                                                            else if (dias <= 7)
+                                                            {
+                                                                <span class="badge bg-warning ms-1">Em breve</span>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>—</span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="d-flex gap-2 justify-content-end">
+                                                            <a asp-action="Edit"
+                                                               asp-route-id="@criptografarId(vacinacao.Id)"
+                                                               class="btn btn-outline-primary btn-sm"
+                                                               title="Editar"
+                                                               data-coreui-toggle="tooltip">
+                                                                <i class="cil-pencil"></i>
+                                                            </a>
+                                                            <a asp-action="Delete"
+                                                               asp-route-id="@criptografarId(vacinacao.Id)"
+                                                               class="btn btn-outline-danger btn-sm"
+                                                               title="Excluir"
+                                                               data-coreui-toggle="tooltip">
+                                                                <i class="cil-trash"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-outline-secondary"
+                                    <a asp-action="Create" asp-controller="Vacinacao"
+                                       asp-route-pet="@idCript"
+                                       class="btn btn-primary btn-sm d-inline-flex align-items-center">
+                                        <i class="cil-plus me-1"></i> Nova Vacinação
+                                    </a>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm"
                                             data-coreui-dismiss="modal">
                                         <i class="cil-x me-1"></i> Fechar
                                     </button>

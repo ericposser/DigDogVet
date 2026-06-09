@@ -42,9 +42,20 @@ public class VacinacaoController : UtilController
             .Include(v => v.Pet)
             .Include(v => v.Vacina)
             .Where(v => v.IdEmpresa == idEmpresa)
-            .OrderBy(v => v.IdPet)
-            .ThenBy(v => v.DataProximaDose)
             .ToListAsync();
+        
+        vacinacoes = vacinacoes
+            .OrderBy(v =>
+            {
+                var proxima = v.DataProximaDose;
+                if (!proxima.HasValue) return (2, DateTime.MaxValue);
+                if (proxima.Value < DateTime.Today) return (0, proxima.Value);
+                if ((proxima.Value - DateTime.Today).TotalDays <= 7) return (1, proxima.Value);
+                return (2, proxima.Value);
+            })
+            .ThenBy(v => v.DataProximaDose ?? DateTime.MaxValue)
+            .ThenBy(v => v.IdPet)
+            .ToList();
 
         var idsDosPets = vacinacoes
             .Where(v => v.IdPet > 0)
@@ -65,10 +76,18 @@ public class VacinacaoController : UtilController
     }
 
     [RequerPermissao(Permissao.VacinacaoCriar)]
-    public async Task<IActionResult> Create()
+    public async Task<IActionResult> Create(string? pet)
     {
         var idEmpresa = await ObterIdEmpresaAsync();
-        await CarregarPets(idEmpresa);
+
+        int? idPetPreSelecionado = null;
+        if (pet != null)
+        {
+            idPetPreSelecionado = DescriptografarId(pet);
+            if (idPetPreSelecionado == null) return NotFound();
+        }
+
+        await CarregarPets(idEmpresa, idPetPreSelecionado);
         await CarregarVacinas(idEmpresa);
         return View();
     }
