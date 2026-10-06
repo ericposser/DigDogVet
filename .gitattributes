@@ -1,0 +1,5 @@
+# Views Razor não devem contar como HTML nas estatísticas de linguagem do GitHub
+*.cshtml linguist-detectable=false
+
+# Bibliotecas de terceiros não devem contar nas estatísticas de linguagem
+DigDog/wwwroot/lib/** linguist-vendored
