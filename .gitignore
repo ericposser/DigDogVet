@@ -8,6 +8,13 @@ obj/
 .vs/
 *.swp
 
+## Segredos / configuração sensível
+appsettings.Production.json
+appsettings.*.local.json
+*.pfx
+*.pem
+secrets.json
+
 ## Publish
 publish/
 out/
