@@ -9,6 +9,8 @@ obj/
 *.swp
 
 ## Segredos / configuração sensível
+appsettings.json
+appsettings.Development.json
 appsettings.Production.json
 appsettings.*.local.json
 *.pfx
